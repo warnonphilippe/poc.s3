@@ -15,19 +15,22 @@ import java.util.List;
 public class S3Service {
 
     // REM : Dans un vrai projet, A extraire dans config
-    private final String ACCESS_KEY = "";
-    private final String SECRET_KEY = "";
+    private final String url = "http://localhost:9000";
+    private final String ACCESS_KEY = "Fe5Qg1gNzUhIM3KC";
+    private final String SECRET_KEY = "OkE7NjQgJsIIy6dHxgy5GNk0VkdzMPOM";
     private final String REGION = "eu-west-3";
 
-    private final String url = "http://localhost:9000";
+    // REM, aussi possible de définir des users, se connecter via token oauth2,...
+    // TODO : Voir comment restreindre l'accès d'un bucket à un user donné et se connecter avec ce user
 
-    private S3FeignClient s3;
+
+    private final S3FeignClient s3;
 
     //private String bucketName = "my-test-bucket";
 
     public S3Service() {
         // REM : dans un vrai projet : a créer via injection et bean de config feign
-        S3FeignClient s3 = Feign.builder().requestInterceptor(new BasicAuthRequestInterceptor(ACCESS_KEY, SECRET_KEY))
+        s3 = Feign.builder().requestInterceptor(new BasicAuthRequestInterceptor(ACCESS_KEY, SECRET_KEY))
                 .target(S3FeignClient.class, url);
     }
 
@@ -39,6 +42,12 @@ public class S3Service {
         s3.putObject(bucketName, objectKey, "text/plain", objectContent.getBytes());
     }
 
+    /**
+     * Post un fichier dans un bucket
+     * @param bucketName nom du bucket
+     * @param objectKey key complète du fichier sous la forme [path]/nom.ext, ex : lot1/file1.txt (dans l'UI minIO; lot1 sera présenté comme un répertoire)
+     * @param objectContent contenu du fichier
+     */
     public void createObject(String bucketName, String objectKey, byte[] objectContent){
         s3.putObject(bucketName, objectKey, "text/plain", objectContent);
     }
