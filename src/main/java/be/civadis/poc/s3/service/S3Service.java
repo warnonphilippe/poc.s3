@@ -17,12 +17,13 @@ public class S3Service {
     // REM : Dans un vrai projet, A extraire dans config
     private final String ACCESS_KEY = "";
     private final String SECRET_KEY = "";
+    private final String REGION = "eu-west-3";
 
     private final String url = "http://localhost:9000";
 
     private S3FeignClient s3;
 
-    private String bucketName = "my-test-bucket";
+    //private String bucketName = "my-test-bucket";
 
     public S3Service() {
         // REM : dans un vrai projet : a créer via injection et bean de config feign
@@ -38,7 +39,7 @@ public class S3Service {
         s3.putObject(bucketName, objectKey, "text/plain", objectContent.getBytes());
     }
 
-    public String getObjectContent(String objectKey) throws IOException {
+    public String getObjectContent(String bucketName, String objectKey) throws IOException {
         Response response = s3.getObject(bucketName, objectKey);
         byte[] object = response.body().asInputStream().readAllBytes();
         return new String(object, StandardCharsets.UTF_8);
@@ -58,12 +59,5 @@ public class S3Service {
             throw e;
         }
     }
-
-    // TODO : réfléchir à structure en arorescence, isoloation des tenants, applications,...
-    // on peut avoir plusieurs bucket, enf aire par tenant ?
-    // comment gérer des paths de fichiers ? hiérarchie dans les buckets ?
-    // rest
-    // docker MimIO
-
 
 }
