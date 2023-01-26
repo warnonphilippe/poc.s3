@@ -1,4 +1,4 @@
-package be.civadis.poc.s3.service;
+package be.civadis.poc.s3.federation;
 
 import be.civadis.poc.s3.federation.S3FeignClient;
 import feign.Feign;
@@ -37,6 +37,10 @@ public class S3Service {
 
     public void createObject(String bucketName, String objectKey, String objectContent){
         s3.putObject(bucketName, objectKey, "text/plain", objectContent.getBytes());
+    }
+
+    public void createObject(String bucketName, String objectKey, byte[] objectContent){
+        s3.putObject(bucketName, objectKey, "text/plain", objectContent);
     }
 
     public String getObjectContent(String bucketName, String objectKey) throws IOException {
