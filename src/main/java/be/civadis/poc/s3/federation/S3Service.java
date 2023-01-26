@@ -162,12 +162,17 @@ public class S3Service {
     }
 
     // TODO
-    // upload d'autres fichiers que du text
-    // secu bucket pour certains user
+
     // (attention, ne pas aller trop loin avant infos infra)
-    // essai avec lib amazon
+
+    // upload d'autres fichiers que du text
     // essai en passant par DocumentService
+    // secu bucket pour certains user
+
+    // essai avec lib amazon
     // nettoyer code
+
+    // LINKS
 
     //Amazon
     // https://nirajsonawane.github.io/2021/05/16/Spring-Boot-with-AWS-S3/
