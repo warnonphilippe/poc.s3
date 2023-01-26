@@ -1,15 +1,12 @@
 package be.civadis.poc.s3.service;
 
-import be.civadis.poc.s3.dto.DefinitionMetaDonneeDTO;
 import be.civadis.poc.s3.dto.DocumentDTO;
 import be.civadis.poc.s3.dto.DocumentStockageDTO;
 import be.civadis.poc.s3.federation.S3Service;
 import be.civadis.poc.s3.utils.FichierUtils;
-import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
