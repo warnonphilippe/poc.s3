@@ -4,8 +4,13 @@ import feign.Headers;
 import feign.Param;
 import feign.RequestLine;
 import feign.Response;
+import io.minio.Result;
+import io.minio.messages.Item;
+import org.springframework.cloud.openfeign.FeignClient;
+
 import java.util.List;
 
+@FeignClient(name = "s3", url = "http://localhost:9000", configuration = S3FeignConfiguration.class)
 public interface S3FeignClient {
 
     @RequestLine("PUT /{bucket}")
@@ -24,5 +29,5 @@ public interface S3FeignClient {
     Response getObject(@Param("bucket") String bucket, @Param("key") String key);
 
     @RequestLine("GET /{bucket}")
-    List<String> listObjects(@Param("bucket") String bucket);
+    List<Result<Item>> listObjects(@Param("bucket") String bucket);
 }
