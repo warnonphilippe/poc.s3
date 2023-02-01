@@ -41,8 +41,8 @@ public class S3Service {
 
     // REM : Dans un vrai projet, A extraire dans config
     private final String URL = "http://localhost:9000";
-    private final String ACCESS_KEY = "Fe5Qg1gNzUhIM3KC";
-    private final String SECRET_KEY = "OkE7NjQgJsIIy6dHxgy5GNk0VkdzMPOM";
+    private final String ACCESS_KEY = "M63XZJiTCspKzus1";
+    private final String SECRET_KEY = "GkXYxPkcVXfHT6SZJhjozv2LnbBvesj6";
     private final String REGION = "eu-west-3";
 
     // REM, aussi possible de définir des users, se connecter via token oauth2,...

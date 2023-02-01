@@ -22,8 +22,8 @@ import java.util.Arrays;
 public class S3FeignConfiguration {
 
     private final String URL = "http://localhost:9000";
-    private final String ACCESS_KEY = "Fe5Qg1gNzUhIM3KC";
-    private final String SECRET_KEY = "OkE7NjQgJsIIy6dHxgy5GNk0VkdzMPOM";
+    private final String ACCESS_KEY = "M63XZJiTCspKzus1";
+    private final String SECRET_KEY = "GkXYxPkcVXfHT6SZJhjozv2LnbBvesj6";
 
     @Bean
     public Contract feignContract() {
