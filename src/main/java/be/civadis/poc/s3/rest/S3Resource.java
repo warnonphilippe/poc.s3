@@ -22,18 +22,22 @@ public class S3Resource {
     }
 
     @GetMapping("/{bucket}")
-    public ResponseEntity<List<String>> getObjectsList(@PathVariable("bucket") String bucket) throws Exception {
-        return ResponseEntity.ok(s3.getObjectsList(bucket));
+    public ResponseEntity<List<String>> getObjectsList(@PathVariable("bucket") String bucket,  @RequestParam(value = "recursive", required = false) Boolean recursive) throws Exception {
+        return ResponseEntity.ok(s3.getObjectsList(bucket, recursive));
     }
-
     @PutMapping("/{bucket}/{keyBase}/**")
     public void createObject(@PathVariable("bucket") String bucket, @PathVariable("keyBase") String keyBase, @RequestBody String objectContent, HttpServletRequest request) throws Exception {
         s3.createObjectString(bucket, getObjectName(keyBase, request), objectContent);
     }
 
     @GetMapping("/{bucket}/{keyBase}/**")
-    ResponseEntity<String> getObject(@PathVariable("bucket") String bucket, @PathVariable("keyBase") String keyBase, HttpServletRequest request) throws Exception {
-        return ResponseEntity.ok(s3.getObjectContentString(bucket, getObjectName(keyBase, request)));
+    ResponseEntity<String> getObjectContent(@PathVariable("bucket") String bucket, @PathVariable("keyBase") String keyBase, @RequestParam(value = "versionId", required = false) String versionId, HttpServletRequest request) throws Exception {
+        return ResponseEntity.ok(s3.getObjectContentString(bucket, getObjectName(keyBase, request), versionId));
+    }
+
+    @GetMapping("/{bucket}/infos/{keyBase}/**")
+    ResponseEntity<List<String>> getObjectVersions(@PathVariable("bucket") String bucket, @PathVariable("keyBase") String keyBase, HttpServletRequest request) throws Exception {
+        return ResponseEntity.ok(s3.getObjectVersions(bucket, getObjectName(keyBase, request)));
     }
 
     private String getObjectName(String keyBase,HttpServletRequest request){

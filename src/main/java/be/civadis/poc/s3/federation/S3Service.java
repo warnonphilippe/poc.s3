@@ -20,6 +20,7 @@ import feign.auth.BasicAuthRequestInterceptor;
 import io.minio.*;
 import io.minio.errors.*;
 import io.minio.messages.Item;
+import io.minio.messages.Version;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -33,16 +34,20 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 @Service
 public class S3Service {
 
     // REM : Dans un vrai projet, A extraire dans config
     private final String URL = "http://localhost:9000";
-    private final String ACCESS_KEY = "M63XZJiTCspKzus1";
-    private final String SECRET_KEY = "GkXYxPkcVXfHT6SZJhjozv2LnbBvesj6";
+    private final String ACCESS_KEY = "nmlfxEBWDyI6ZF1t";
+    private final String SECRET_KEY = "NZoL9EovpXl8cLQqTl0PLPDI1e0THdJC";
     private final String REGION = "eu-west-3";
 
     // REM, aussi possible de définir des users, se connecter via token oauth2,...
@@ -111,13 +116,19 @@ public class S3Service {
 
     }
 
-    public String getObjectContentString(String bucketName, String objectKey) throws Exception {
+    public String getObjectContentString(String bucketName, String objectKey, String versionId) throws Exception {
         InputStream stream = null;
         try {
-            stream = s3.getObject(GetObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(objectKey).build());
 
+            var builder = GetObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(objectKey);
+
+            if (versionId != null && !versionId.isBlank() && !versionId.isEmpty()){
+                builder.versionId(versionId);
+            }
+
+            stream = s3.getObject(builder.build());
 
             byte[] content = FichierUtils.readBytes(stream);
             return new String(content, StandardCharsets.UTF_8);
@@ -130,17 +141,45 @@ public class S3Service {
         }
     }
 
-    public List<String> getObjectsList(String bucketName) throws Exception {
+    public List<String> getObjectsList(String bucketName, Boolean recursive) throws Exception {
         try {
             List<String> codeList = new ArrayList<>();
             var results = s3.listObjects(ListObjectsArgs.builder()
                     .bucket(bucketName)
+                    .recursive(Boolean.TRUE.equals(recursive))
                     .build());
             for (Result<Item> result : results) {
                 Item item = result.get();
                 codeList.add(item.objectName());
             }
             return codeList;
+        } catch (Exception e){
+            //TODO log...
+            throw e;
+        }
+
+    }
+
+    public List<String> getObjectVersions(String bucketName, String objectKey) throws Exception {
+        try {
+
+            var builder = ListObjectsArgs.builder()
+                    .bucket(bucketName)
+                    .prefix(objectKey)
+                    .includeVersions(true);
+
+            var results = s3.listObjects(builder.build());
+
+            List<Item> itemList = new ArrayList<>();
+            for (Result<Item> result : results) {
+                itemList.add(result.get());
+            }
+
+            return itemList.stream()
+                    .sorted(Comparator.comparing(Item::lastModified).reversed())
+                    .map(Item::versionId)
+                    .toList();
+
         } catch (Exception e){
             //TODO log...
             throw e;

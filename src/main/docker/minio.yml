@@ -15,11 +15,8 @@ services:
         - MINIO_ROOT_USER=admin
         - MINIO_ROOT_PASSWORD=password
     volumes:
-      - data1:/data1
-      - data2:/data2
+      - d:\volumes\s3\data:/data
+      - d:\volumes\s3\data1:/data1
+      - d:\volumes\s3\data2:/data2
     #networks:
     #    - app-tier
-
-volumes:
-    data1:
-    data2:
