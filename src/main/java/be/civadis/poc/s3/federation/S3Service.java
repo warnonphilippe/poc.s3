@@ -50,8 +50,7 @@ public class S3Service {
     private final String SECRET_KEY = "NZoL9EovpXl8cLQqTl0PLPDI1e0THdJC";
     private final String REGION = "eu-west-3";
 
-    // REM, aussi possible de définir des users, se connecter via token oauth2,...
-    // TODO : Voir comment restreindre l'accès d'un bucket à un user donné et se connecter avec ce user
+    // TODO, aussi possible de définir des users, se connecter via token oauth2,...
 
 
     //private S3FeignClient s3;
@@ -202,13 +201,9 @@ public class S3Service {
 
     // TODO
 
-
     // upload d'autres fichiers que du text
     // essai en passant par DocumentService
-    // secu bucket pour certains user
-    // https://gist.github.com/krishnasrinivas/2f5a9affe6be6aff42fe723f02c86d6a
-    // https://docs.aws.amazon.com/AmazonS3/latest/userguide/example-policies-s3.html
-    // https://min.io/docs/minio/linux/administration/identity-access-management/policy-based-access-control.html
+
 
     // essai avec lib amazon
     // nettoyer code
