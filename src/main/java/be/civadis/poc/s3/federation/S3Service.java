@@ -207,6 +207,8 @@ public class S3Service {
     // essai en passant par DocumentService
     // secu bucket pour certains user
     // https://gist.github.com/krishnasrinivas/2f5a9affe6be6aff42fe723f02c86d6a
+    // https://docs.aws.amazon.com/AmazonS3/latest/userguide/example-policies-s3.html
+    // https://min.io/docs/minio/linux/administration/identity-access-management/policy-based-access-control.html
 
     // essai avec lib amazon
     // nettoyer code
