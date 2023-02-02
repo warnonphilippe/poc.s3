@@ -202,11 +202,11 @@ public class S3Service {
 
     // TODO
 
-    // (attention, ne pas aller trop loin avant infos infra)
 
     // upload d'autres fichiers que du text
     // essai en passant par DocumentService
     // secu bucket pour certains user
+    // https://gist.github.com/krishnasrinivas/2f5a9affe6be6aff42fe723f02c86d6a
 
     // essai avec lib amazon
     // nettoyer code
