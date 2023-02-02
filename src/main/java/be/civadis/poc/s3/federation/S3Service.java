@@ -1,53 +1,33 @@
 package be.civadis.poc.s3.federation;
 
-import be.civadis.poc.s3.federation.S3FeignClient;
 import be.civadis.poc.s3.utils.FichierUtils;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
-import com.amazonaws.SignableRequest;
 import com.amazonaws.auth.*;
 import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.ListObjectsV2Result;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.google.common.collect.Lists;
-import feign.Feign;
-import feign.FeignException;
-import feign.Response;
-import feign.auth.BasicAuthRequestInterceptor;
 import io.minio.*;
-import io.minio.errors.*;
 import io.minio.messages.Item;
-import io.minio.messages.Version;
-import org.apache.commons.io.IOUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+import java.util.*;
 
 @Service
 public class S3Service {
 
     // REM : Dans un vrai projet, A extraire dans config
     private final String URL = "http://localhost:9000";
-    private final String ACCESS_KEY = "nmlfxEBWDyI6ZF1t";
-    private final String SECRET_KEY = "NZoL9EovpXl8cLQqTl0PLPDI1e0THdJC";
+
+    private static Map<String, ConnectionInfos> keyMap = new HashMap();
+    static {
+        keyMap.put("testapp_00000", new ConnectionInfos("t1Cdwo2WqInZhdsb", "4ZGYCwmjhs4ZRlUsZ1kIyZOnxmongs7D"));
+        keyMap.put("onyx_00000", new ConnectionInfos("tVzyYlpHY0eTfwYq", "MgTzHAu0vdZALd3cIFUOF4ftY3FLJ1GG"));
+    }
+
     private final String REGION = "eu-west-3";
 
     // TODO, aussi possible de définir des users, se connecter via token oauth2,...
@@ -60,16 +40,21 @@ public class S3Service {
 
     public S3Service(S3FeignClient s3FeignClient) {
         //this.s3 = s3FeignClient;
-        s3 = getMinIOClient();
+        // TODO : retrouver dynamiquement selon un param dans l'appel
+        s3 = getMinIOClient("testapp_00000");
     }
 
-    private MinioClient getMinIOClient(){
+    private MinioClient getMinIOClient(String user){
         return MinioClient.builder()
                         .endpoint(URL)
-                        .credentials(ACCESS_KEY, SECRET_KEY)
+                        .credentials(getConnectionInfos(user).key, getConnectionInfos(user).secret)
                         .build();
     }
 
+    private ConnectionInfos getConnectionInfos(String user){
+        return keyMap.get(user);
+    }
+/*
     private AmazonS3 getAmazonCLient(){
         BasicAWSCredentials awsCreds = new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY);
 
@@ -85,7 +70,7 @@ public class S3Service {
                 //.withRegion(Regions.US_EAST_1)
                 .build();
     }
-
+*/
 
     /**
      * Post un fichier dans un bucket
@@ -197,6 +182,25 @@ public class S3Service {
         //byte[] object = response.body().asInputStream().readAllBytes();
         //return new String(object, StandardCharsets.UTF_8);
         throw new RuntimeException("Not implemented yet");
+    }
+
+    private static class ConnectionInfos{
+
+        private String key;
+        private String secret;
+
+        public ConnectionInfos(String key, String secret) {
+            this.key = key;
+            this.secret = secret;
+        }
+
+        public String getKey() {
+            return key;
+        }
+
+        public String getSecret() {
+            return secret;
+        }
     }
 
     // TODO
