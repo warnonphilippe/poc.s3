@@ -21,6 +21,7 @@ public class DocumentService {
 
     private String DEFAULT_TENANT = "jhipster";
 
+    //TODO : Ne pas injecter s3 mais une implem de SystemeStockageService
     private S3Service s3;
 
 

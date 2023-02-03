@@ -34,7 +34,7 @@ public class DocumentResource {
             @RequestPart("file") MultipartFile fichierDocument,
             @RequestPart(name = "defMetaDonneeDto", required = false)  DefinitionMetaDonneeDTO defMetaDonneeDto,
             @RequestHeader(value = "Content-Transfer-Encoding", required = false) String encoding)
-            throws IOException {
+            throws Exception {
         DocumentDTO documentDto = documentService.stockerDocument(docDto, FichierUtils.decodeBase64Multipart(fichierDocument, encoding).getResource());
         return ResponseEntity.ok(documentDto);
     }
