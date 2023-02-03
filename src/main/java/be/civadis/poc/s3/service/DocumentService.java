@@ -2,7 +2,7 @@ package be.civadis.poc.s3.service;
 
 import be.civadis.poc.s3.dto.DocumentDTO;
 import be.civadis.poc.s3.dto.DocumentStockageDTO;
-import be.civadis.poc.s3.federation.S3Service;
+import be.civadis.poc.s3.federation.s3.S3Service;
 import be.civadis.poc.s3.utils.FichierUtils;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;

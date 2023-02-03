@@ -1,17 +1,19 @@
-package be.civadis.poc.s3.federation;
+package be.civadis.poc.s3.federation.s3;
 
+import be.civadis.poc.s3.utils.ApplicationInfosUtils;
 import be.civadis.poc.s3.utils.FichierUtils;
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.Protocol;
-import com.amazonaws.auth.*;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import be.civadis.poc.s3.utils.TenantContext;
 import io.minio.*;
 import io.minio.messages.Item;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -21,34 +23,36 @@ public class S3Service {
 
     // REM : Dans un vrai projet, A extraire dans config
     private final String URL = "http://localhost:9000";
-
     private static Map<String, ConnectionInfos> keyMap = new HashMap();
     static {
         keyMap.put("testapp_00000", new ConnectionInfos("t1Cdwo2WqInZhdsb", "4ZGYCwmjhs4ZRlUsZ1kIyZOnxmongs7D"));
         keyMap.put("onyx_00000", new ConnectionInfos("tVzyYlpHY0eTfwYq", "MgTzHAu0vdZALd3cIFUOF4ftY3FLJ1GG"));
     }
-
     private final String REGION = "eu-west-3";
 
     // TODO, aussi possible de définir des users, se connecter via token oauth2,...
 
-
     //private S3FeignClient s3;
     //private final AmazonS3 s3;
-    private final MinioClient s3;
+    //private final MinioClient s3;
 
-
-    public S3Service(S3FeignClient s3FeignClient) {
-        //this.s3 = s3FeignClient;
-        // TODO : retrouver dynamiquement selon un param dans l'appel
-        s3 = getMinIOClient("testapp_00000");
+    public S3Service() {
+        // REM : Dans un vrai porjet, devra être issu de la sécurité (token,...)
+        TenantContext.setCurrentTenant("00000");
+        ApplicationInfosUtils.initDefaultCurrentApp("testapp");
     }
 
-    private MinioClient getMinIOClient(String user){
+    private MinioClient getMinIOClient(){
         return MinioClient.builder()
                         .endpoint(URL)
-                        .credentials(getConnectionInfos(user).key, getConnectionInfos(user).secret)
+                        .credentials(
+                                getConnectionInfos(getCurrentStockageUser()).key,
+                                getConnectionInfos(getCurrentStockageUser()).secret)
                         .build();
+    }
+
+    private String getCurrentStockageUser(){
+        return ApplicationInfosUtils.getCurrentApp() + "_" + TenantContext.getCurrentTenant();
     }
 
     private ConnectionInfos getConnectionInfos(String user){
@@ -83,7 +87,7 @@ public class S3Service {
         ByteArrayInputStream bais = null;
         try {
             bais = new ByteArrayInputStream(objectContent.getBytes("UTF-8"));
-            s3.putObject(PutObjectArgs.builder()
+            getMinIOClient().putObject(PutObjectArgs.builder()
                     .bucket(bucketName)
                     .object(objectKey)
                     .stream(bais, bais.available(), -1)
@@ -112,7 +116,7 @@ public class S3Service {
                 builder.versionId(versionId);
             }
 
-            stream = s3.getObject(builder.build());
+            stream = getMinIOClient().getObject(builder.build());
 
             byte[] content = FichierUtils.readBytes(stream);
             return new String(content, StandardCharsets.UTF_8);
@@ -128,7 +132,7 @@ public class S3Service {
     public List<String> getObjectsList(String bucketName, Boolean recursive) throws Exception {
         try {
             List<String> codeList = new ArrayList<>();
-            var results = s3.listObjects(ListObjectsArgs.builder()
+            var results = getMinIOClient().listObjects(ListObjectsArgs.builder()
                     .bucket(bucketName)
                     .recursive(Boolean.TRUE.equals(recursive))
                     .build());
@@ -152,7 +156,7 @@ public class S3Service {
                     .prefix(objectKey)
                     .includeVersions(true);
 
-            var results = s3.listObjects(builder.build());
+            var results = getMinIOClient().listObjects(builder.build());
 
             List<Item> itemList = new ArrayList<>();
             for (Result<Item> result : results) {
@@ -171,17 +175,49 @@ public class S3Service {
 
     }
 
-    public void createObject(String bucketName, String objectKey, byte[] objectContent){
-        //s3.putObject(bucketName, objectKey,  objectContent); //par la lib
-        //s3.putObject(bucketName, objectKey, "text/plain", objectContent);
-        throw new RuntimeException("Not implemented yet");
+    public void createObject(String bucketName, String objectKey, File file) throws Exception{
+        InputStream is = null;
+        try {
+            is = new FileInputStream(file);
+            getMinIOClient().putObject(PutObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(objectKey)
+                    .stream(is, is.available(), -1)
+                    .build());
+
+        } catch (Exception e) {
+            // TODO log...
+            throw e;
+        } finally {
+            if (is != null){
+                is.close();
+            }
+        }
     }
 
-    public String getObjectContent(String bucketName, String objectKey) throws Exception {
-        //Response response = s3.getObject(bucketName, objectKey);
-        //byte[] object = response.body().asInputStream().readAllBytes();
-        //return new String(object, StandardCharsets.UTF_8);
-        throw new RuntimeException("Not implemented yet");
+    public Resource getObjectContent(String bucketName, String objectKey, String versionId) throws Exception {
+        InputStream stream = null;
+        try {
+
+            var builder = GetObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(objectKey);
+
+            if (versionId != null && !versionId.isBlank() && !versionId.isEmpty()){
+                builder.versionId(versionId);
+            }
+
+            stream = getMinIOClient().getObject(builder.build());
+
+            byte[] content = FichierUtils.readBytes(stream);
+            return new ByteArrayResource(content);
+
+        } catch (Exception e){
+            //TODO log
+            throw e;
+        } finally {
+            if (stream != null) stream.close();
+        }
     }
 
     private static class ConnectionInfos{
@@ -205,7 +241,6 @@ public class S3Service {
 
     // TODO
 
-    // upload d'autres fichiers que du text
     // essai en passant par DocumentService
 
 

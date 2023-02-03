@@ -1,4 +1,4 @@
-package be.civadis.poc.s3.federation;
+package be.civadis.poc.s3.federation.s3;
 
 import be.civadis.poc.s3.utils.CustomFileDecoder;
 import be.civadis.poc.s3.utils.CustomFormEncoder;

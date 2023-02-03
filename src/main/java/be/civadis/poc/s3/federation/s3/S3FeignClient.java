@@ -1,4 +1,4 @@
-package be.civadis.poc.s3.federation;
+package be.civadis.poc.s3.federation.s3;
 
 import feign.Headers;
 import feign.Param;
