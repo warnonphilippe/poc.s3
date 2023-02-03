@@ -7,9 +7,7 @@ import io.minio.*;
 import io.minio.messages.Item;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
-import org.springframework.http.HttpEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -20,7 +18,7 @@ import java.nio.file.Files;
 import java.util.*;
 
 @Service
-public class S3Service {
+public class S3ClientService {
 
     // REM : Dans un vrai projet, A extraire dans config
     private final String URL = "http://localhost:9000";
@@ -37,7 +35,7 @@ public class S3Service {
     //private final AmazonS3 s3;
     //private final MinioClient s3;
 
-    public S3Service() {
+    public S3ClientService() {
         // REM : Dans un vrai porjet, devra être issu de la sécurité (token,...)
         TenantContext.setCurrentTenant("00000");
         ApplicationInfosUtils.initDefaultCurrentApp("testapp");

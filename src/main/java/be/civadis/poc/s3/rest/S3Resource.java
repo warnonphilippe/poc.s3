@@ -1,7 +1,7 @@
 package be.civadis.poc.s3.rest;
 
 
-import be.civadis.poc.s3.federation.s3.S3Service;
+import be.civadis.poc.s3.federation.s3.S3ClientService;
 import be.civadis.poc.s3.utils.FichierUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.io.Resource;
@@ -17,9 +17,9 @@ import java.util.List;
 @RequestMapping("s3")
 public class S3Resource {
 
-    private S3Service s3;
+    private S3ClientService s3;
 
-    public S3Resource(S3Service s3) {
+    public S3Resource(S3ClientService s3) {
         this.s3 = s3;
     }
 

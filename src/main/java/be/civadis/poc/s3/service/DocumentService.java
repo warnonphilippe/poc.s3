@@ -2,13 +2,10 @@ package be.civadis.poc.s3.service;
 
 import be.civadis.poc.s3.dto.DocumentDTO;
 import be.civadis.poc.s3.dto.DocumentStockageDTO;
-import be.civadis.poc.s3.federation.s3.S3Service;
-import be.civadis.poc.s3.utils.FichierUtils;
+import be.civadis.poc.s3.federation.s3.S3ClientService;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.UUID;
 
 @Service
@@ -22,10 +19,10 @@ public class DocumentService {
     private String DEFAULT_TENANT = "jhipster";
 
     //TODO : Ne pas injecter s3 mais une implem de SystemeStockageService
-    private S3Service s3;
+    private S3ClientService s3;
 
 
-    public DocumentService(S3Service s3) {
+    public DocumentService(S3ClientService s3) {
         this.s3 = s3;
     }
 
@@ -52,11 +49,5 @@ public class DocumentService {
         return dto;
     }
 
-
-    // utiliser des buckets différents pour isoler les tenants
-    // comment gérer des paths de fichiers ? hiérarchie dans les buckets ?
-    //  -> Simuler en spécifiant des paths dans les objets keys
-    // rest
-    // docker MimIO
 
 }
