@@ -7,7 +7,9 @@ import be.civadis.poc.s3.federation.dto.SystemeStockageDocumentDTO;
 import be.civadis.poc.s3.federation.exception.GpdocValidationException;
 import be.civadis.poc.s3.federation.exception.NodeNotFoundException;
 import be.civadis.poc.s3.federation.exception.SystemeStockageException;
+import be.civadis.poc.s3.utils.TenantContext;
 import org.springframework.core.io.Resource;
+import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -15,6 +17,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
+@Service
 public class S3ClientAdapterService implements SystemStockageClient {
 
     private S3ClientService s3ClientService;
@@ -30,7 +33,7 @@ public class S3ClientAdapterService implements SystemStockageClient {
 
     @Override
     public void deleteDocument(String id) throws SystemeStockageException {
-
+        s3ClientService.deleteObject(TenantContext.getCurrentTenant(), id, null);
     }
 
     @Override
@@ -90,22 +93,67 @@ public class S3ClientAdapterService implements SystemStockageClient {
 
     @Override
     public void updateProprietes(String uuid, String titre, String description, String name) throws SystemeStockageException {
+        // le nom ne peut pas être changé, mais on peut déplacé le fichier ? les autres champs ne sont pas présent
+
+        try {
+            //l'uuid sera généré par gpdoc, il ne représente plus un uuid connu du système de stockage, mais on peut en déduire l'objectKey grâche aux infos de gpdoc
+            DocumentDTO documentDTO = getDocumentFromGpdoc(uuid);
+
+            String srcKey = getDocumentKey(documentDTO.getCheminDocument(), documentDTO.getNomDocument());
+
+            s3ClientService.copyObject(TenantContext.getCurrentTenant(),
+                    srcKey,
+                    getDocumentKey(documentDTO.getCheminDocument(), name));
+
+            s3ClientService.deleteObject(TenantContext.getCurrentTenant(), srcKey, null);
+
+        } catch (Exception ex){
+            throw new SystemeStockageException(ex.getMessage(), ex);
+        }
 
     }
 
     @Override
     public SystemeStockageDocumentDTO moveNode(String uuid, String cheminDestination) throws NodeNotFoundException, SystemeStockageException {
-        return null;
+
+        try {
+            //l'uuid sera généré par gpdoc, il ne représente plus un uuid connu du système de stockage, mais on peut en déduire l'objectKey grâche aux infos de gpdoc
+            DocumentDTO documentDTO = getDocumentFromGpdoc(uuid);
+
+            String srcKey = getDocumentKey(documentDTO.getCheminDocument(), documentDTO.getNomDocument());
+
+            s3ClientService.copyObject(TenantContext.getCurrentTenant(),
+                    srcKey,
+                    getDocumentKey(cheminDestination, documentDTO.getNomDocument()));
+
+            s3ClientService.deleteObject(TenantContext.getCurrentTenant(), srcKey, null);
+
+            // TODO
+            return null;
+
+        } catch (Exception ex){
+            throw new SystemeStockageException(ex.getMessage(), ex);
+        }
+
     }
 
-    private String createDocumentKey(DocumentStockageDTO docDto){
+    private DocumentDTO getDocumentFromGpdoc(String uuid){
+        // TODO
+        throw new RuntimeException("Not yet iplemented !!!");
+    }
+
+    private String getDocumentKey(String path, String name){
         StringBuilder str = new StringBuilder();
-        str.append(docDto.getCheminDestination());
-        if (!docDto.getCheminDestination().endsWith("/")){
+        str.append(path);
+        if (!path.endsWith("/")){
             str.append("/");
         }
-        str.append(docDto.getNomDestination());
+        str.append(name);
         return str.toString();
+    }
+
+    private String getDocumentKey(DocumentStockageDTO docDto){
+        return getDocumentKey(docDto.getCheminDestination(), docDto.getNomDestination());
     }
 
     private DocumentDTO createResultDocumentDTO(DocumentStockageDTO docDto) {

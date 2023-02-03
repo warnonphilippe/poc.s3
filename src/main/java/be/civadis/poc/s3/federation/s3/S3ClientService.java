@@ -1,18 +1,16 @@
 package be.civadis.poc.s3.federation.s3;
 
-import be.civadis.poc.s3.utils.ApplicationInfosUtils;
+import be.civadis.poc.s3.federation.exception.SystemeStockageException;
 import be.civadis.poc.s3.utils.FichierUtils;
-import be.civadis.poc.s3.utils.TenantContext;
 import io.minio.*;
 import io.minio.messages.Item;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
@@ -20,60 +18,13 @@ import java.util.*;
 @Service
 public class S3ClientService {
 
-    // REM : Dans un vrai projet, A extraire dans config
-    private final String URL = "http://localhost:9000";
-    private static Map<String, ConnectionInfos> keyMap = new HashMap();
-    static {
-        keyMap.put("testapp_00000", new ConnectionInfos("t1Cdwo2WqInZhdsb", "4ZGYCwmjhs4ZRlUsZ1kIyZOnxmongs7D"));
-        keyMap.put("onyx_00000", new ConnectionInfos("tVzyYlpHY0eTfwYq", "MgTzHAu0vdZALd3cIFUOF4ftY3FLJ1GG"));
+    private static final Logger logger = LoggerFactory.getLogger(S3ClientService.class);
+
+    private final S3ClientConfigService clientConfigService;
+
+    public S3ClientService(S3ClientConfigService clientConfigService) {
+        this.clientConfigService = clientConfigService;
     }
-    private final String REGION = "eu-west-3";
-
-    // TODO, aussi possible de définir des users, se connecter via token oauth2,...
-
-    //private S3FeignClient s3;
-    //private final AmazonS3 s3;
-    //private final MinioClient s3;
-
-    public S3ClientService() {
-        // REM : Dans un vrai porjet, devra être issu de la sécurité (token,...)
-        TenantContext.setCurrentTenant("00000");
-        ApplicationInfosUtils.initDefaultCurrentApp("testapp");
-    }
-
-    private MinioClient getMinIOClient(){
-        return MinioClient.builder()
-                        .endpoint(URL)
-                        .credentials(
-                                getConnectionInfos(getCurrentStockageUser()).key,
-                                getConnectionInfos(getCurrentStockageUser()).secret)
-                        .build();
-    }
-
-    private String getCurrentStockageUser(){
-        return ApplicationInfosUtils.getCurrentApp() + "_" + TenantContext.getCurrentTenant();
-    }
-
-    private ConnectionInfos getConnectionInfos(String user){
-        return keyMap.get(user);
-    }
-/*
-    private AmazonS3 getAmazonCLient(){
-        BasicAWSCredentials awsCreds = new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY);
-
-        ClientConfiguration config = new ClientConfiguration();
-        config.setProtocol(Protocol.HTTP);
-        config.setProxyHost("localhost");
-        config.setProxyPort(8080);
-
-        return AmazonS3ClientBuilder.standard()
-                .withClientConfiguration(config)
-                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(URL, REGION))
-                .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
-                //.withRegion(Regions.US_EAST_1)
-                .build();
-    }
-*/
 
     /**
      * Post un fichier dans un bucket
@@ -81,29 +32,32 @@ public class S3ClientService {
      * @param objectKey key complète du fichier sous la forme [path]/nom.ext, ex : lot1/file1.txt (dans l'UI minIO; lot1 sera présenté comme un répertoire)
      * @param objectContent contenu du fichier
      */
-    public void createObjectString(String bucketName, String objectKey, String objectContent) throws Exception {
+    public void createObjectString(String bucketName, String objectKey, String objectContent) throws SystemeStockageException {
 
         ByteArrayInputStream bais = null;
         try {
             bais = new ByteArrayInputStream(objectContent.getBytes("UTF-8"));
-            getMinIOClient().putObject(PutObjectArgs.builder()
+            clientConfigService.getMinIOClient().putObject(PutObjectArgs.builder()
                     .bucket(bucketName)
                     .object(objectKey)
                     .stream(bais, bais.available(), -1)
                     .build());
 
         } catch (Exception e) {
-            // TODO log...
-            throw e;
+            throw new SystemeStockageException(e.getMessage(), e);
         } finally {
             if (bais != null){
-                bais.close();
+                try {
+                    bais.close();
+                } catch (IOException e) {
+                    logger.warn(e.getMessage(), e);
+                }
             }
         }
 
     }
 
-    public String getObjectContentString(String bucketName, String objectKey, String versionId) throws Exception {
+    public String getObjectContentString(String bucketName, String objectKey, String versionId) throws SystemeStockageException {
         InputStream stream = null;
         try {
 
@@ -115,23 +69,28 @@ public class S3ClientService {
                 builder.versionId(versionId);
             }
 
-            stream = getMinIOClient().getObject(builder.build());
+            stream = clientConfigService.getMinIOClient().getObject(builder.build());
 
             byte[] content = FichierUtils.readBytes(stream);
             return new String(content, StandardCharsets.UTF_8);
 
         } catch (Exception e){
-            //TODO log
-            throw e;
+            throw new SystemeStockageException(e.getMessage(), e);
         } finally {
-            if (stream != null) stream.close();
+            if (stream != null) {
+                try {
+                    stream.close();
+                } catch (IOException e) {
+                    logger.warn(e.getMessage(), e);
+                }
+            }
         }
     }
 
     public List<String> getObjectsList(String bucketName, Boolean recursive) throws Exception {
         try {
             List<String> codeList = new ArrayList<>();
-            var results = getMinIOClient().listObjects(ListObjectsArgs.builder()
+            var results = clientConfigService.getMinIOClient().listObjects(ListObjectsArgs.builder()
                     .bucket(bucketName)
                     .recursive(Boolean.TRUE.equals(recursive))
                     .build());
@@ -141,8 +100,7 @@ public class S3ClientService {
             }
             return codeList;
         } catch (Exception e){
-            //TODO log...
-            throw e;
+            throw new SystemeStockageException(e.getMessage(), e);
         }
 
     }
@@ -155,7 +113,7 @@ public class S3ClientService {
                     .prefix(objectKey)
                     .includeVersions(true);
 
-            var results = getMinIOClient().listObjects(builder.build());
+            var results = clientConfigService.getMinIOClient().listObjects(builder.build());
 
             List<Item> itemList = new ArrayList<>();
             for (Result<Item> result : results) {
@@ -168,8 +126,7 @@ public class S3ClientService {
                     .toList();
 
         } catch (Exception e){
-            //TODO log...
-            throw e;
+            throw new SystemeStockageException(e.getMessage(), e);
         }
 
     }
@@ -180,15 +137,14 @@ public class S3ClientService {
         try {
             file = FichierUtils.getFileFromResource(fileRes);
             is = new FileInputStream(file);
-            getMinIOClient().putObject(PutObjectArgs.builder()
+            clientConfigService.getMinIOClient().putObject(PutObjectArgs.builder()
                     .bucket(bucketName)
                     .object(objectKey)
                     .stream(is, is.available(), -1)
                     .build());
 
         } catch (Exception e) {
-            // TODO log...
-            throw e;
+            throw new SystemeStockageException(e.getMessage(), e);
         } finally {
             if (is != null){
                 is.close();
@@ -199,7 +155,7 @@ public class S3ClientService {
         }
     }
 
-    public Resource getObjectContent(String bucketName, String objectKey, String versionId) throws Exception {
+    public Resource getObjectContent(String bucketName, String objectKey, String versionId) throws SystemeStockageException {
         InputStream stream = null;
         try {
 
@@ -211,54 +167,58 @@ public class S3ClientService {
                 builder.versionId(versionId);
             }
 
-            stream = getMinIOClient().getObject(builder.build());
+            stream = clientConfigService.getMinIOClient().getObject(builder.build());
 
             byte[] content = FichierUtils.readBytes(stream);
             return new ByteArrayResource(content);
 
         } catch (Exception e){
-            //TODO log
-            throw e;
+            throw new SystemeStockageException(e.getMessage(), e);
         } finally {
-            if (stream != null) stream.close();
+            if (stream != null) {
+                try {
+                    stream.close();
+                } catch (IOException e) {
+                    logger.warn(e.getMessage(), e);
+                }
+            }
         }
     }
 
-    private static class ConnectionInfos{
+    public void copyObject(String bucketName, String objectKeySrc, String objectKeyDest) throws Exception{
+        try {
+            var src = CopySource.builder()
+                    .bucket(objectKeySrc)
+                    .object(objectKeySrc);
 
-        private String key;
-        private String secret;
+            var dest = CopyObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(objectKeyDest)
+                    .source(src.build());
 
-        public ConnectionInfos(String key, String secret) {
-            this.key = key;
-            this.secret = secret;
-        }
+            clientConfigService.getMinIOClient().copyObject(dest.build());
 
-        public String getKey() {
-            return key;
-        }
-
-        public String getSecret() {
-            return secret;
+        } catch (Exception e) {
+            throw new SystemeStockageException(e.getMessage(), e);
         }
     }
 
-    // TODO
+    public void deleteObject(String bucketName, String objectKey, String versionId) throws SystemeStockageException{
+        try {
 
-    // essai en passant par DocumentService
+            var builder = RemoveObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(objectKey);
 
+            if (versionId != null && !versionId.isBlank() && !versionId.isEmpty()){
+                builder.versionId(versionId);
+            }
 
-    // essai avec lib amazon
-    // nettoyer code
+            clientConfigService.getMinIOClient().removeObject(builder.build());
 
-    // LINKS
-
-    //Amazon
-    // https://nirajsonawane.github.io/2021/05/16/Spring-Boot-with-AWS-S3/
-    // https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/examples-s3-objects.html
-
-    //MinIO
-    // https://min.io/docs/minio/linux/developers/java/API.html#
-    // https://github.com/minio/minio-java/tree/release/examples
+        } catch (Exception e){
+            throw new SystemeStockageException(e.getMessage(), e);
+        }
+    }
 
 }
