@@ -2,10 +2,13 @@ package be.civadis.poc.s3.rest;
 
 
 import be.civadis.poc.s3.federation.s3.S3Service;
+import be.civadis.poc.s3.utils.FichierUtils;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.HandlerMapping;
 
 import java.util.List;
@@ -25,17 +28,16 @@ public class S3Resource {
         return ResponseEntity.ok(s3.getObjectsList(bucket, recursive));
     }
     @PutMapping("/{bucket}/{keyBase}/**")
-    public void createObject(@PathVariable("bucket") String bucket, @PathVariable("keyBase") String keyBase, @RequestBody String objectContent, HttpServletRequest request) throws Exception {
-        s3.createObjectString(bucket, getObjectName(keyBase, request), objectContent);
+    public void createObject(@PathVariable("bucket") String bucket, @PathVariable("keyBase") String keyBase, @RequestPart("file") MultipartFile objectContent,
+                             @RequestHeader(value = "Content-Transfer-Encoding", required = false) String encoding, HttpServletRequest request) throws Exception {
+        Resource resource = FichierUtils.decodeBase64Multipart(objectContent, encoding).getResource();
+        s3.createObject(bucket, getObjectName(keyBase, request), resource);
     }
 
     @GetMapping("/{bucket}/{keyBase}/**")
-    ResponseEntity<String> getObjectContent(@PathVariable("bucket") String bucket, @PathVariable("keyBase") String keyBase, @RequestParam(value = "versionId", required = false) String versionId, HttpServletRequest request) throws Exception {
-        return ResponseEntity.ok(s3.getObjectContentString(bucket, getObjectName(keyBase, request), versionId));
+    ResponseEntity<Resource> getObjectContent(@PathVariable("bucket") String bucket, @PathVariable("keyBase") String keyBase, @RequestParam(value = "versionId", required = false) String versionId, HttpServletRequest request) throws Exception {
+        return ResponseEntity.ok(s3.getObjectContent(bucket, getObjectName(keyBase, request), versionId));
     }
-
-    // TODO : create Object et get Object de type file
-
 
     @GetMapping("/{bucket}/infos/{keyBase}/**")
     ResponseEntity<List<String>> getObjectVersions(@PathVariable("bucket") String bucket, @PathVariable("keyBase") String keyBase, HttpServletRequest request) throws Exception {

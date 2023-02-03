@@ -16,6 +16,9 @@ public class DocumentService {
 
     // REM, dans une vraie app, le tenant devrait être déduit du token d'auth
     // le tenant va être utilisé comme nom de bucket
+
+    //ATTENTION, le document service sera modifié le moins possible car on devra pouvoir aller sur l'alfresco ou s3, mais l'impleme du client sera différente
+
     private String DEFAULT_TENANT = "jhipster";
 
     private S3Service s3;
@@ -25,17 +28,9 @@ public class DocumentService {
         this.s3 = s3;
     }
 
-    public DocumentDTO stockerDocument(DocumentStockageDTO docDto, Resource resource) throws IOException {
-
-        try (InputStream inputStream = resource.getInputStream()){
-
-            //File docFile = FichierUtils.getFileFromResource(resource);
-            byte[] bytes = FichierUtils.readBytes(inputStream);
-
-            s3.createObject(DEFAULT_TENANT, createDocumentKey(docDto), bytes);
-
-            return createResultDocumentDTO(docDto);
-        }
+    public DocumentDTO stockerDocument(DocumentStockageDTO docDto, Resource resource) throws Exception {
+        s3.createObject(DEFAULT_TENANT, createDocumentKey(docDto), resource);
+        return createResultDocumentDTO(docDto);
     }
 
     private String createDocumentKey(DocumentStockageDTO docDto){

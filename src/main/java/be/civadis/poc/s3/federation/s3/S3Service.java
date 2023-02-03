@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.*;
 
 @Service
@@ -175,9 +176,11 @@ public class S3Service {
 
     }
 
-    public void createObject(String bucketName, String objectKey, File file) throws Exception{
+    public void createObject(String bucketName, String objectKey, Resource fileRes) throws Exception{
         InputStream is = null;
+        File file = null;
         try {
+            file = FichierUtils.getFileFromResource(fileRes);
             is = new FileInputStream(file);
             getMinIOClient().putObject(PutObjectArgs.builder()
                     .bucket(bucketName)
@@ -191,6 +194,9 @@ public class S3Service {
         } finally {
             if (is != null){
                 is.close();
+            }
+            if (file != null){
+                Files.delete(file.toPath());
             }
         }
     }
