@@ -39,25 +39,7 @@ public interface SystemStockageClient {
      * @param id id du document (l'id peut inclure un numéro de version du document)
      * @return
      */
-    List<SystemeStockageDocumentDTO> getDocumentAllVersions(String id) throws SystemeStockageException;
-
-    /**
-     * Obtenir une liste de documents
-     *
-     * @param parent path du parent des documents
-     * @return
-     */
-    List<SystemeStockageDocumentDTO> getDocuments(String parent) throws SystemeStockageException, NodeNotFoundException;
-
-    /**
-     * Obtenir une liste de documents
-     *
-     * @param parent   path du parent des documents
-     * @param page     page
-     * @param pageSize nombre d'éléments par page
-     * @return
-     */
-    List<SystemeStockageDocumentDTO> getDocuments(String parent, Integer page, Integer pageSize) throws SystemeStockageException, NodeNotFoundException;
+    List<SystemeStockageDocumentDTO> getDocumentAllVersions(String id) throws SystemeStockageException, GpdocValidationException;
 
     /**
      * Upload d'un document
@@ -91,7 +73,7 @@ public interface SystemStockageClient {
      * @param id id du document
      * @return
      */
-    Resource downloadDocument(String id) throws SystemeStockageException;
+    Resource downloadDocument(String id) throws SystemeStockageException, GpdocValidationException;
 
     /**
      * Download d'un document
@@ -100,45 +82,7 @@ public interface SystemStockageClient {
      * @param version version du document
      * @return
      */
-    Resource downloadDocument(String id, String version) throws SystemeStockageException;
-
-    /**
-     * Retourne un document
-     *
-     * @param id   id de l'objet
-     * @param path path de l'objet
-     * @return
-     */
-    SystemeStockageDocumentDTO getDocument(String id, String path) throws SystemeStockageException, GpdocValidationException;
-
-    /**
-     * Retourne un document
-     *
-     * @param id      id de l'objet
-     * @param path    path de l'objet
-     * @param version version du document
-     * @return
-     */
-    SystemeStockageDocumentDTO getDocument(String id, String path, String version) throws SystemeStockageException, GpdocValidationException;
-
-    /**
-     * Retourne un document et son contenu (ne fonctionne que pour un fichier, pas un répertoire)
-     *
-     * @param id   id de l'objet
-     * @param path path de l'objet
-     * @return
-     */
-    SystemeStockageDocumentDTO getDocumentAvecContenu(String id, String path) throws SystemeStockageException, GpdocValidationException;
-
-    /**
-     * Retourne un document et son contenu (ne fonctionne que pour un fichier, pas un répertoire)
-     *
-     * @param id      id de l'objet
-     * @param path    path de l'objet
-     * @param version version du document
-     * @return
-     */
-    SystemeStockageDocumentDTO getDocumentAvecContenu(String id, String path, String version) throws SystemeStockageException, GpdocValidationException;
+    Resource downloadDocument(String id, String version) throws SystemeStockageException, GpdocValidationException;
 
     /**
      * Update le titre et la description d'un document dans l'alfresco
@@ -152,9 +96,23 @@ public interface SystemStockageClient {
 
     /**
      * Déplacer un document
-     * @param uuid uuid du document à déplacer
-     * @param cheminDestination destination à laquelle déplacer le document
+     * @param cheminDestination
      * @return
+     * @throws NodeNotFoundException
+     * @throws SystemeStockageException
      */
     SystemeStockageDocumentDTO moveNode(String uuid, String cheminDestination) throws NodeNotFoundException, SystemeStockageException;
+
+    // méthodes supprimées (corriger leurs appels, toutes leurs valeurs doivent être retrouvées dans la db gpdoc)
+    //getDocument
+    //getDocuments
+
+    // méthodes supprimées (à vérifier, mais pourraient être supprimées car existent déjà des alternatives)
+    //getDocumentAvecContenu
+    //searchDocument
+    //searchDocuments
+    //getFolderTree
+    //createFolder (remplacer par createAndCheckFolder)
+    //addTags (déjà plus utilisée)
+
 }

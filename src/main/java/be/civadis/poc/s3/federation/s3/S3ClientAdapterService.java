@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class S3ClientAdapterService implements SystemStockageClient {
@@ -40,17 +41,15 @@ public class S3ClientAdapterService implements SystemStockageClient {
     }
 
     @Override
-    public List<SystemeStockageDocumentDTO> getDocumentAllVersions(String id) throws SystemeStockageException {
-        return null;
+    public List<SystemeStockageDocumentDTO> getDocumentAllVersions(String uuid) throws SystemeStockageException, GpdocValidationException {
+        DocumentDTO documentDTO = getDocumentFromGpdoc(uuid);
+        return s3ClientService.getObjectVersions(TenantContext.getCurrentTenant(), uuid).stream()
+                .map(v -> createSystemeStockageDocumentDTO(documentDTO, v))
+                .collect(Collectors.toList());
     }
 
-    @Override
-    public List<SystemeStockageDocumentDTO> getDocuments(String parent) throws SystemeStockageException, NodeNotFoundException {
-        return null;
-    }
-
-    @Override
-    public List<SystemeStockageDocumentDTO> getDocuments(String parent, Integer page, Integer pageSize) throws SystemeStockageException, NodeNotFoundException {
+    private SystemeStockageDocumentDTO createSystemeStockageDocumentDTO(DocumentDTO dto, String version){
+        // TODO : compléter un SystemeStockageDocumentDTO selon le DocumentDTO et le num de version
         return null;
     }
 
@@ -77,41 +76,30 @@ public class S3ClientAdapterService implements SystemStockageClient {
     }
 
     @Override
-    public Resource downloadDocument(String id) throws SystemeStockageException {
-        return null;
+    public Resource downloadDocument(String uuid) throws SystemeStockageException, GpdocValidationException {
+        DocumentDTO documentDTO = getDocumentFromGpdoc(uuid);
+        return this.s3ClientService.getObjectContent(
+                TenantContext.getCurrentTenant(),
+                getDocumentKey(documentDTO.getCheminDocument(), documentDTO.getNomDocument()), null);
     }
 
     @Override
-    public Resource downloadDocument(String id, String version) throws SystemeStockageException {
-        return null;
-    }
-
-    @Override
-    public SystemeStockageDocumentDTO getDocument(String id, String path) throws SystemeStockageException, GpdocValidationException {
-        return null;
-    }
-
-    @Override
-    public SystemeStockageDocumentDTO getDocument(String id, String path, String version) throws SystemeStockageException, GpdocValidationException {
-        return null;
-    }
-
-    @Override
-    public SystemeStockageDocumentDTO getDocumentAvecContenu(String id, String path) throws SystemeStockageException, GpdocValidationException {
-        return null;
-    }
-
-    @Override
-    public SystemeStockageDocumentDTO getDocumentAvecContenu(String id, String path, String version) throws SystemeStockageException, GpdocValidationException {
-        return null;
+    public Resource downloadDocument(String uuid, String version) throws SystemeStockageException, GpdocValidationException {
+        // TODO : voir si correspondance entre numérations de versions
+        DocumentDTO documentDTO = getDocumentFromGpdoc(uuid);
+        return this.s3ClientService.getObjectContent(
+                TenantContext.getCurrentTenant(),
+                getDocumentKey(documentDTO.getCheminDocument(), documentDTO.getNomDocument()), version);
     }
 
     @Override
     public void updateProprietes(String uuid, String titre, String description, String name) throws SystemeStockageException {
-        // le nom ne peut pas être changé, mais on peut déplacé le fichier ? les autres champs ne sont pas présent
+        //dans l'implem S3,
+        //  le nom ne peut pas être changé, mais on peut déplacé le fichier ? les autres champs ne sont pas présent
+        //  l'uuid sera généré par gpdoc, il ne représente plus un uuid connu du système de stockage, mais on peut en déduire l'objectKey grâche aux infos de gpdoc
 
         try {
-            //l'uuid sera généré par gpdoc, il ne représente plus un uuid connu du système de stockage, mais on peut en déduire l'objectKey grâche aux infos de gpdoc
+
             DocumentDTO documentDTO = getDocumentFromGpdoc(uuid);
 
             String srcKey = getDocumentKey(documentDTO.getCheminDocument(), documentDTO.getNomDocument());
@@ -129,10 +117,10 @@ public class S3ClientAdapterService implements SystemStockageClient {
     }
 
     @Override
-    public SystemeStockageDocumentDTO moveNode(String uuid, String cheminDestination) throws NodeNotFoundException, SystemeStockageException {
+    public SystemeStockageDocumentDTO moveNode(String uuid, String cheminDestination) throws SystemeStockageException {
 
         try {
-            //l'uuid sera généré par gpdoc, il ne représente plus un uuid connu du système de stockage, mais on peut en déduire l'objectKey grâche aux infos de gpdoc
+
             DocumentDTO documentDTO = getDocumentFromGpdoc(uuid);
 
             String srcKey = getDocumentKey(documentDTO.getCheminDocument(), documentDTO.getNomDocument());
@@ -159,10 +147,13 @@ public class S3ClientAdapterService implements SystemStockageClient {
 
     }
 
-    private DocumentDTO getDocumentFromGpdoc(String uuid){
-        // TODO
-        // rechercher dans gpdoc les infos d'un document et retourner le DocumentDto car ces infos n'existent pas dans s3
-        throw new RuntimeException("Not yet iplemented !!!");
+    private DocumentDTO getDocumentFromGpdoc(String uuid) throws GpdocValidationException {
+        //TODO : Rechercher les infos à propos du document dans la db gpdoc
+        //  Attention, L'adapteur devra donc être dans la couche service, sinon pas d'accès au repo
+        //  L'interface générale du client du stockage devra aussi y être
+        // Par contre les implémentations des client S3 et Alfresco seront être dans federation
+        // ATTENTION, GpdocValidationException si pas trouvé !
+        throw new RuntimeException("Not implemented yet");
     }
 
     private String getDocumentKey(String path, String name){
@@ -189,7 +180,7 @@ public class S3ClientAdapterService implements SystemStockageClient {
 
     private void completeVersion(String key, SystemeStockageDocumentDTO dto) throws SystemeStockageException {
         // TODO voir si on stocke la version issue de S3 ou si on garde une numérotation à associé aux numéros de s3
-        // TODO comment s'assurer que la dernièer version récupérée est bien celle associé à l'upload que l'on vient de faire,
+        // TODO comment s'assurer que la dernière version récupérée est bien celle associé à l'upload que l'on vient de faire,
         //  car on pourrait avoir fait 2 upload en même temps et le get versions pourrait retourner l'id de l'autre
         //  actuellement, on a bien la bonne valeur dans le dto, mais si 2 update en même temps, on pourrait risquer de save en db la mauvaise valeur
         List<String> versions = this.s3ClientService.getObjectVersions(TenantContext.getCurrentTenant(), key);
