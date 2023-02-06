@@ -39,6 +39,12 @@ public class S3Resource {
         return ResponseEntity.ok(s3.getObjectContent(bucket, getObjectName(keyBase, request), versionId));
     }
 
+    @DeleteMapping("/{bucket}/{keyBase}/**")
+    ResponseEntity deleteObject(@PathVariable("bucket") String bucket, @PathVariable("keyBase") String keyBase, @RequestParam(value = "versionId", required = false) String versionId, HttpServletRequest request) throws Exception {
+        s3.deleteObject(bucket, getObjectName(keyBase, request), versionId);
+        return ResponseEntity.ok(null);
+    }
+
     @GetMapping("/{bucket}/infos/{keyBase}/**")
     ResponseEntity<List<String>> getObjectVersions(@PathVariable("bucket") String bucket, @PathVariable("keyBase") String keyBase, HttpServletRequest request) throws Exception {
         return ResponseEntity.ok(s3.getObjectVersions(bucket, getObjectName(keyBase, request)));

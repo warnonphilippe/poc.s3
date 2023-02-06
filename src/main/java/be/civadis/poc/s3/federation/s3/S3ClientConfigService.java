@@ -28,12 +28,14 @@ public class S3ClientConfigService {
     //private final MinioClient s3;
 
     public S3ClientConfigService() {
-        // TODO : Dans un vrai porjet, devra être issu de la sécurité (token,...)
-        TenantContext.setCurrentTenant("00000");
-        ApplicationInfosUtils.initDefaultCurrentApp("testapp");
     }
 
     public MinioClient getMinIOClient(){
+
+        // TODO : Dans un vrai projet, devra être issu de la sécurité (token,...)
+        TenantContext.setCurrentTenant("00000");
+        ApplicationInfosUtils.initDefaultCurrentApp("testapp");
+
         return MinioClient.builder()
                 .endpoint(URL)
                 .credentials(
