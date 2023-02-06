@@ -84,10 +84,7 @@ public class S3ClientAdapterService implements SystemStockageClient {
 
     @Override
     public Resource downloadDocument(String uuid) throws SystemeStockageException, GpdocValidationException {
-        DocumentDTO documentDTO = getDocumentFromGpdoc(uuid);
-        return this.s3ClientService.getObjectContent(
-                TenantContext.getCurrentTenant(),
-                getDocumentKey(documentDTO.getCheminDocument(), documentDTO.getNomDocument()), null);
+        return downloadDocument(uuid, null);
     }
 
     @Override
@@ -110,11 +107,9 @@ public class S3ClientAdapterService implements SystemStockageClient {
             DocumentDTO documentDTO = getDocumentFromGpdoc(uuid);
 
             String srcKey = getDocumentKey(documentDTO);
+            String dstKey = getDocumentKey(documentDTO.getCheminDocument(), name);
 
-            s3ClientService.copyObject(TenantContext.getCurrentTenant(),
-                    srcKey,
-                    getDocumentKey(documentDTO.getCheminDocument(), name));
-
+            s3ClientService.copyObject(TenantContext.getCurrentTenant(), srcKey, dstKey);
             s3ClientService.deleteObject(TenantContext.getCurrentTenant(), srcKey, null);
 
         } catch (Exception ex){
@@ -134,7 +129,6 @@ public class S3ClientAdapterService implements SystemStockageClient {
             String dstKey = getDocumentKey(cheminDestination, documentDTO.getNomDocument());
 
             s3ClientService.copyObject(TenantContext.getCurrentTenant(), srcKey, dstKey);
-
             s3ClientService.deleteObject(TenantContext.getCurrentTenant(), srcKey, null);
 
             SystemeStockageDocumentDTO dto = new SystemeStockageDocumentDTO();
