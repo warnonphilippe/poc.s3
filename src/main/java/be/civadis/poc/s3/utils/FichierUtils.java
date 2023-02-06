@@ -466,6 +466,15 @@ public class FichierUtils {
         return file;
     }
 
+    public static File getFileFromMultipart(MultipartFile multipartFile) throws IOException {
+        File file = null;
+        if (multipartFile != null && !multipartFile.isEmpty()) {
+            file = File.createTempFile(TMP_FILE_PREFIX, null);
+            multipartFile.transferTo(file);
+        }
+        return file;
+    }
+
     public static PathInfo splitPath(String destPath) {
         String[] parts = destPath.split("/(?!.*/)");
         if (parts.length > 1) {

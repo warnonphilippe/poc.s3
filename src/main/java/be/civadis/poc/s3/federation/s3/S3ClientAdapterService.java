@@ -7,6 +7,7 @@ import be.civadis.poc.s3.federation.dto.SystemeStockageDocumentDTO;
 import be.civadis.poc.s3.federation.exception.GpdocValidationException;
 import be.civadis.poc.s3.federation.exception.NodeNotFoundException;
 import be.civadis.poc.s3.federation.exception.SystemeStockageException;
+import be.civadis.poc.s3.utils.FichierUtils;
 import be.civadis.poc.s3.utils.TenantContext;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -53,12 +56,24 @@ public class S3ClientAdapterService implements SystemStockageClient {
 
     @Override
     public SystemeStockageDocumentDTO uploadDocument(MultipartFile fileRef, String parentPath, String targetName, String destMimeType, String titre, String description) throws SystemeStockageException, IOException, NodeNotFoundException {
-        return null;
+        return uploadDocument(FichierUtils.getFileFromMultipart(fileRef), parentPath, targetName, destMimeType, titre, description);
     }
 
     @Override
     public SystemeStockageDocumentDTO uploadDocument(File dst, String parentPath, String targetName, String destMimeType, String titre, String description) throws SystemeStockageException, IOException, NodeNotFoundException {
-        return null;
+
+        SystemeStockageDocumentDTO dto = new SystemeStockageDocumentDTO();
+        dto.setDirectory(false);
+        dto.setMimeType(destMimeType);
+        dto.setName(dst.getName());
+        dto.setPath(parentPath);
+        dto.setSize(dst.length());
+
+        String key = getDocumentKey(parentPath, dst.getName());
+        this.s3ClientService.createObject(TenantContext.getCurrentTenant(), key, dst);
+        completeVersion(key, dto);
+
+        return dto;
     }
 
     @Override
@@ -121,15 +136,22 @@ public class S3ClientAdapterService implements SystemStockageClient {
             DocumentDTO documentDTO = getDocumentFromGpdoc(uuid);
 
             String srcKey = getDocumentKey(documentDTO.getCheminDocument(), documentDTO.getNomDocument());
+            String dstKey = getDocumentKey(cheminDestination, documentDTO.getNomDocument());
 
-            s3ClientService.copyObject(TenantContext.getCurrentTenant(),
-                    srcKey,
-                    getDocumentKey(cheminDestination, documentDTO.getNomDocument()));
+            s3ClientService.copyObject(TenantContext.getCurrentTenant(), srcKey, dstKey);
 
             s3ClientService.deleteObject(TenantContext.getCurrentTenant(), srcKey, null);
 
-            // TODO
-            return null;
+            SystemeStockageDocumentDTO dto = new SystemeStockageDocumentDTO();
+            dto.setDirectory(false);
+            dto.setMimeType(documentDTO.getMediaType());
+            dto.setName(documentDTO.getNomDocument());
+            dto.setPath(cheminDestination);
+            dto.setSize(Long.parseLong(documentDTO.getTaille()));
+
+            completeVersion(dstKey, dto);
+
+            return dto;
 
         } catch (Exception ex){
             throw new SystemeStockageException(ex.getMessage(), ex);
@@ -139,6 +161,7 @@ public class S3ClientAdapterService implements SystemStockageClient {
 
     private DocumentDTO getDocumentFromGpdoc(String uuid){
         // TODO
+        // rechercher dans gpdoc les infos d'un document et retourner le DocumentDto car ces infos n'existent pas dans s3
         throw new RuntimeException("Not yet iplemented !!!");
     }
 
@@ -162,6 +185,20 @@ public class S3ClientAdapterService implements SystemStockageClient {
         dto.setNomDocument(docDto.getNomDestination());
         dto.setCheminDocument(docDto.getCheminDestination());
         return dto;
+    }
+
+    private void completeVersion(String key, SystemeStockageDocumentDTO dto) throws SystemeStockageException {
+        // TODO voir si on stocke la version issue de S3 ou si on garde une numérotation à associé aux numéros de s3
+        // TODO comment s'assurer que la dernièer version récupérée est bien celle associé à l'upload que l'on vient de faire,
+        //  car on pourrait avoir fait 2 upload en même temps et le get versions pourrait retourner l'id de l'autre
+        //  actuellement, on a bien la bonne valeur dans le dto, mais si 2 update en même temps, on pourrait risquer de save en db la mauvaise valeur
+        List<String> versions = this.s3ClientService.getObjectVersions(TenantContext.getCurrentTenant(), key);
+        dto.setVersionLabel(versions.get(0));
+        Date now = new Date();
+        if (versions.size() == 1){
+            dto.setCreatedAt(now);
+        }
+        dto.setModifiedAt(now);
     }
 
 }

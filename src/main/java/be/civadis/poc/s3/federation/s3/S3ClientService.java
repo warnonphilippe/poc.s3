@@ -3,6 +3,7 @@ package be.civadis.poc.s3.federation.s3;
 import be.civadis.poc.s3.federation.exception.SystemeStockageException;
 import be.civadis.poc.s3.utils.FichierUtils;
 import io.minio.*;
+import io.minio.errors.*;
 import io.minio.messages.Item;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +14,8 @@ import org.springframework.stereotype.Service;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 @Service
@@ -46,13 +49,7 @@ public class S3ClientService {
         } catch (Exception e) {
             throw new SystemeStockageException(e.getMessage(), e);
         } finally {
-            if (bais != null){
-                try {
-                    bais.close();
-                } catch (IOException e) {
-                    logger.warn(e.getMessage(), e);
-                }
-            }
+            cleanStream(bais);
         }
 
     }
@@ -77,17 +74,11 @@ public class S3ClientService {
         } catch (Exception e){
             throw new SystemeStockageException(e.getMessage(), e);
         } finally {
-            if (stream != null) {
-                try {
-                    stream.close();
-                } catch (IOException e) {
-                    logger.warn(e.getMessage(), e);
-                }
-            }
+            cleanStream(stream);
         }
     }
 
-    public List<String> getObjectsList(String bucketName, Boolean recursive) throws Exception {
+    public List<String> getObjectsList(String bucketName, Boolean recursive) throws SystemeStockageException {
         try {
             List<String> codeList = new ArrayList<>();
             var results = clientConfigService.getMinIOClient().listObjects(ListObjectsArgs.builder()
@@ -105,7 +96,7 @@ public class S3ClientService {
 
     }
 
-    public List<String> getObjectVersions(String bucketName, String objectKey) throws Exception {
+    public List<String> getObjectVersions(String bucketName, String objectKey) throws SystemeStockageException {
         try {
 
             var builder = ListObjectsArgs.builder()
@@ -131,28 +122,43 @@ public class S3ClientService {
 
     }
 
-    public void createObject(String bucketName, String objectKey, Resource fileRes) throws Exception{
+    public void createObject(String bucketName, String objectKey, Resource fileRes) throws SystemeStockageException {
         InputStream is = null;
         File file = null;
         try {
             file = FichierUtils.getFileFromResource(fileRes);
             is = new FileInputStream(file);
-            clientConfigService.getMinIOClient().putObject(PutObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(objectKey)
-                    .stream(is, is.available(), -1)
-                    .build());
+            callPutObject(bucketName, objectKey, is);
 
         } catch (Exception e) {
             throw new SystemeStockageException(e.getMessage(), e);
+
         } finally {
-            if (is != null){
-                is.close();
-            }
-            if (file != null){
-                Files.delete(file.toPath());
-            }
+            cleanStream(is);
+            cleanFile(file);
         }
+    }
+
+    public void createObject(String bucketName, String objectKey, File file) throws SystemeStockageException {
+        InputStream is = null;
+        try {
+            is = new FileInputStream(file);
+            callPutObject(bucketName, objectKey, is);
+
+        } catch (Exception e) {
+            throw new SystemeStockageException(e.getMessage(), e);
+
+        } finally {
+            cleanStream(is);
+        }
+    }
+
+    private void callPutObject(String bucketName, String objectKey, InputStream is) throws IOException, ServerException, InsufficientDataException, ErrorResponseException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException, InternalException {
+        clientConfigService.getMinIOClient().putObject(PutObjectArgs.builder()
+                .bucket(bucketName)
+                .object(objectKey)
+                .stream(is, is.available(), -1)
+                .build());
     }
 
     public Resource getObjectContent(String bucketName, String objectKey, String versionId) throws SystemeStockageException {
@@ -175,17 +181,11 @@ public class S3ClientService {
         } catch (Exception e){
             throw new SystemeStockageException(e.getMessage(), e);
         } finally {
-            if (stream != null) {
-                try {
-                    stream.close();
-                } catch (IOException e) {
-                    logger.warn(e.getMessage(), e);
-                }
-            }
+            cleanStream(stream);
         }
     }
 
-    public void copyObject(String bucketName, String objectKeySrc, String objectKeyDest) throws Exception{
+    public void copyObject(String bucketName, String objectKeySrc, String objectKeyDest) throws SystemeStockageException{
         try {
             var src = CopySource.builder()
                     .bucket(objectKeySrc)
@@ -218,6 +218,26 @@ public class S3ClientService {
 
         } catch (Exception e){
             throw new SystemeStockageException(e.getMessage(), e);
+        }
+    }
+
+    private void cleanFile(File file){
+        if (file != null){
+            try {
+                Files.delete(file.toPath());
+            } catch (IOException e) {
+                logger.warn(e.getMessage(), e);
+            }
+        }
+    }
+
+    private void cleanStream(InputStream is){
+        if (is != null){
+            try {
+                is.close();
+            } catch (IOException e) {
+                logger.warn(e.getMessage(), e);
+            }
         }
     }
 
