@@ -15,7 +15,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
-import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -43,14 +42,22 @@ public class S3ClientAdapterService implements SystemStockageClient {
     @Override
     public List<SystemeStockageDocumentDTO> getDocumentAllVersions(String uuid) throws SystemeStockageException, GpdocValidationException {
         DocumentDTO documentDTO = getDocumentFromGpdoc(uuid);
-        return s3ClientService.getObjectVersions(TenantContext.getCurrentTenant(), uuid).stream()
+        String documentKey = getDocumentKey(documentDTO);
+        return s3ClientService.getObjectVersions(TenantContext.getCurrentTenant(), documentKey).stream()
                 .map(v -> createSystemeStockageDocumentDTO(documentDTO, v))
                 .collect(Collectors.toList());
     }
 
-    private SystemeStockageDocumentDTO createSystemeStockageDocumentDTO(DocumentDTO dto, String version){
-        // TODO : compléter un SystemeStockageDocumentDTO selon le DocumentDTO et le num de version
-        return null;
+    private SystemeStockageDocumentDTO createSystemeStockageDocumentDTO(DocumentDTO documentDTO, String version){
+        SystemeStockageDocumentDTO dto = new SystemeStockageDocumentDTO();
+        dto.setDirectory(false);
+        dto.setMimeType(documentDTO.getMediaType());
+        dto.setName(documentDTO.getNomDocument());
+        dto.setPath(documentDTO.getCheminDocument());
+        dto.setSize(Long.parseLong(documentDTO.getTaille()));
+        dto.setVersionLabel(version);
+        dto.setId(documentDTO.getUuidDocument());
+        return dto;
     }
 
     @Override
@@ -102,7 +109,7 @@ public class S3ClientAdapterService implements SystemStockageClient {
 
             DocumentDTO documentDTO = getDocumentFromGpdoc(uuid);
 
-            String srcKey = getDocumentKey(documentDTO.getCheminDocument(), documentDTO.getNomDocument());
+            String srcKey = getDocumentKey(documentDTO);
 
             s3ClientService.copyObject(TenantContext.getCurrentTenant(),
                     srcKey,
@@ -123,7 +130,7 @@ public class S3ClientAdapterService implements SystemStockageClient {
 
             DocumentDTO documentDTO = getDocumentFromGpdoc(uuid);
 
-            String srcKey = getDocumentKey(documentDTO.getCheminDocument(), documentDTO.getNomDocument());
+            String srcKey = getDocumentKey(documentDTO);
             String dstKey = getDocumentKey(cheminDestination, documentDTO.getNomDocument());
 
             s3ClientService.copyObject(TenantContext.getCurrentTenant(), srcKey, dstKey);
@@ -168,6 +175,10 @@ public class S3ClientAdapterService implements SystemStockageClient {
 
     private String getDocumentKey(DocumentStockageDTO docDto){
         return getDocumentKey(docDto.getCheminDestination(), docDto.getNomDestination());
+    }
+
+    private String getDocumentKey(DocumentDTO docDto){
+        return getDocumentKey(docDto.getCheminDocument(), docDto.getNomDocument());
     }
 
     private DocumentDTO createResultDocumentDTO(DocumentStockageDTO docDto) {
