@@ -1,14 +1,18 @@
 package be.civadis.poc.s3.federation.s3;
 
 import be.civadis.poc.s3.dto.DocumentDTO;
+import be.civadis.poc.s3.federation.exception.GpdocValidationException;
+import be.civadis.poc.s3.federation.exception.SystemeStockageException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
 
 @ExtendWith(MockitoExtension.class)
 class S3ClientAdapterServiceTest {
@@ -16,6 +20,9 @@ class S3ClientAdapterServiceTest {
     @InjectMocks
     @Spy
     private S3ClientAdapterService s3ClientAdapterService;
+
+    @Mock
+    private S3ClientService s3ClientService;
 
     @Test
     void removeFirstSlash() {
@@ -288,5 +295,57 @@ class S3ClientAdapterServiceTest {
         assertThat(res).isNotNull();
         assertThat(res.getBucketName()).isEqualTo("onyx-00000");
         assertThat(res.getObjectKey()).isEqualTo("lot/name.txt");
+    }
+
+    @Test
+    void checkOrCreateFolderPath() {
+        String path = "/path1/path2";
+        var res = s3ClientAdapterService.checkOrCreateFolderPath(path);
+        assertThat(res).isEqualTo(path);
+    }
+
+    @Test
+    void deleteDocument() throws GpdocValidationException, SystemeStockageException {
+        String uuid = "123456789";
+        DocumentDTO dto = new DocumentDTO();
+        dto.setUuidDocument(uuid);
+        dto.setNomDocument("name.txt");
+        dto.setCheminDocument("testapp/lot");
+
+        Mockito.when(s3ClientAdapterService.getCurrentTenant()).thenReturn("00000");
+        Mockito.when(s3ClientAdapterService.getCurrentApp()).thenReturn("testapp");
+        Mockito.when(s3ClientAdapterService.getDocumentFromGpdoc(uuid)).thenReturn(dto);
+
+        Mockito.doNothing().when(s3ClientService).deleteObject(anyString(), anyString(), anyString());
+
+        Mockito.verify(s3ClientService, Mockito.times(1)).deleteObject("testapp-00000", "lot/name.txt", null);
+    }
+
+    @Test
+    void getDocumentAllVersions() {
+    }
+
+    @Test
+    void uploadDocument() {
+    }
+
+    @Test
+    void testUploadDocument() {
+    }
+
+    @Test
+    void downloadDocument() {
+    }
+
+    @Test
+    void testDownloadDocument() {
+    }
+
+    @Test
+    void updateProprietes() {
+    }
+
+    @Test
+    void moveNode() {
     }
 }
