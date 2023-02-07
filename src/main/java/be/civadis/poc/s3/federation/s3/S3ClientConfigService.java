@@ -15,8 +15,8 @@ public class S3ClientConfigService {
     private final String URL = "http://localhost:9000";
     private static Map<String, S3ClientConfigService.ConnectionInfos> keyMap = new HashMap();
     static {
-        keyMap.put("testapp_00000", new S3ClientConfigService.ConnectionInfos("xchhmSRz98sphyUn", "83g5sYKZFDfxWQiNUYUCSlb3Z46ve9bM"));
-        //keyMap.put("testapp_00000", new S3ClientConfigService.ConnectionInfos("t1Cdwo2WqInZhdsb", "4ZGYCwmjhs4ZRlUsZ1kIyZOnxmongs7D"));
+        //keyMap.put("testapp_00000", new S3ClientConfigService.ConnectionInfos("xchhmSRz98sphyUn", "83g5sYKZFDfxWQiNUYUCSlb3Z46ve9bM"));
+        keyMap.put("testapp_00000", new S3ClientConfigService.ConnectionInfos("lYZElDKqeVgsqmVI", "NUQiqC61QF4FgtCOJaVopK6UuyGGqkUo"));
         keyMap.put("onyx_00000", new S3ClientConfigService.ConnectionInfos("tVzyYlpHY0eTfwYq", "MgTzHAu0vdZALd3cIFUOF4ftY3FLJ1GG"));
     }
     private final String REGION = "eu-west-3";

@@ -185,14 +185,14 @@ public class S3ClientService {
         }
     }
 
-    public void copyObject(String bucketName, String objectKeySrc, String objectKeyDest) throws SystemeStockageException{
+    public void copyObject(String srcBucketName, String objectKeySrc, String dstBucketName, String objectKeyDest) throws SystemeStockageException{
         try {
             var src = CopySource.builder()
-                    .bucket(objectKeySrc)
+                    .bucket(srcBucketName)
                     .object(objectKeySrc);
 
             var dest = CopyObjectArgs.builder()
-                    .bucket(bucketName)
+                    .bucket(dstBucketName)
                     .object(objectKeyDest)
                     .source(src.build());
 

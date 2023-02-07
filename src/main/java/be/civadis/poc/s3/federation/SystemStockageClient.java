@@ -27,7 +27,7 @@ public interface SystemStockageClient {
      *
      * @param id id du document
      */
-    void deleteDocument(String id) throws SystemeStockageException;
+    void deleteDocument(String id) throws SystemeStockageException, GpdocValidationException;
 
     /**
      * Recherche toutes les versions d'un document
