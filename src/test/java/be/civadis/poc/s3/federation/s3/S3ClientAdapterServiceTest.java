@@ -1,8 +1,14 @@
 package be.civadis.poc.s3.federation.s3;
 
-import be.civadis.poc.s3.dto.DocumentDTO;
+import be.civadis.poc.s3.federation.dto.SystemeStockageDocumentDTO;
 import be.civadis.poc.s3.federation.exception.GpdocValidationException;
+import be.civadis.poc.s3.federation.exception.NodeNotFoundException;
 import be.civadis.poc.s3.federation.exception.SystemeStockageException;
+import be.civadis.poc.s3.repository.DocumentView;
+import be.civadis.poc.s3.service.S3ClientAdapterService;
+import be.civadis.poc.s3.service.S3DocumentResolverAdapterService;
+import be.civadis.poc.s3.service.S3IdentifiantAdapterService;
+import be.civadis.poc.s3.service.S3ObjectLocation;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -10,8 +16,18 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 
 @ExtendWith(MockitoExtension.class)
@@ -22,280 +38,13 @@ class S3ClientAdapterServiceTest {
     private S3ClientAdapterService s3ClientAdapterService;
 
     @Mock
+    private S3IdentifiantAdapterService s3IdentifiantAdapterService;
+
+    @Mock
+    private S3DocumentResolverAdapterService s3DocumentResolverAdapterService;
+
+    @Mock
     private S3ClientService s3ClientService;
-
-    @Test
-    void removeFirstSlash() {
-        String res = s3ClientAdapterService.removeLeadingSlash("/testapp/lot/");
-        assertThat(res).isEqualTo("testapp/lot/");
-    }
-
-    @Test
-    void removeFirstSlash_no_slash() {
-        String res = s3ClientAdapterService.removeLeadingSlash("testapp/lot");
-        assertThat(res).isEqualTo("testapp/lot");
-    }
-
-    @Test
-    void removeFirstSlash_empty() {
-        String res = s3ClientAdapterService.removeLeadingSlash("");
-        assertThat(res).isEqualTo("");
-    }
-
-    @Test
-    void removeFirstSlash_null() {
-        String res = s3ClientAdapterService.removeLeadingSlash("");
-        assertThat(res).isEqualTo("");
-    }
-
-    @Test
-    void isBucketOfUser_leading_slash() {
-        Mockito.when(s3ClientAdapterService.getCurrentApp()).thenReturn("testapp");
-        boolean res = s3ClientAdapterService.isBucketOfUser("/testapp/file");
-        assertThat(res).isTrue();
-    }
-
-    @Test
-    void isBucketOfUser() {
-        Mockito.when(s3ClientAdapterService.getCurrentApp()).thenReturn("testapp");
-        boolean res = s3ClientAdapterService.isBucketOfUser("testapp/file");
-        assertThat(res).isTrue();
-    }
-
-    @Test
-    void isBucketOfUser_other_app_leading_slash() {
-        Mockito.when(s3ClientAdapterService.getCurrentApp()).thenReturn("testapp");
-        boolean res = s3ClientAdapterService.isBucketOfUser("/onyx/file");
-        assertThat(res).isFalse();
-    }
-
-    @Test
-    void isBucketOfUser_other_app() {
-        Mockito.when(s3ClientAdapterService.getCurrentApp()).thenReturn("testapp");
-        boolean res = s3ClientAdapterService.isBucketOfUser("onyx/file");
-        assertThat(res).isFalse();
-    }
-
-    @Test
-    void isBucketOfUser_empty() {
-        Mockito.when(s3ClientAdapterService.getCurrentApp()).thenReturn("testapp");
-        boolean res = s3ClientAdapterService.isBucketOfUser("");
-        assertThat(res).isFalse();
-    }
-
-    @Test
-    void isBucketOfUser_null() {
-        boolean res = s3ClientAdapterService.isBucketOfUser(null);
-        assertThat(res).isFalse();
-    }
-
-    @Test
-    void getApp_leading_slash() {
-        String app = s3ClientAdapterService.getApp("/testapp/file");
-        assertThat(app).isEqualTo("testapp");
-    }
-
-    @Test
-    void getApp() {
-        String app = s3ClientAdapterService.getApp("testapp/file");
-        assertThat(app).isEqualTo("testapp");
-    }
-
-    @Test
-    void getApp_leading_slash_no_file() {
-        String app = s3ClientAdapterService.getApp("/testapp/");
-        assertThat(app).isEqualTo("testapp");
-    }
-
-    @Test
-    void getApp_leading_file_no_slash() {
-        String app = s3ClientAdapterService.getApp("/testapp");
-        assertThat(app).isEqualTo("testapp");
-    }
-
-    @Test
-    void getApp_slash_ony() {
-        String app = s3ClientAdapterService.getApp("/");
-        assertThat(app).isEqualTo("");
-    }
-
-    @Test
-    void getApp_empty() {
-        String app = s3ClientAdapterService.getApp("");
-        assertThat(app).isEqualTo("");
-    }
-
-    @Test
-    void getApp_null() {
-        String app = s3ClientAdapterService.getApp(null);
-        assertThat(app).isEqualTo("");
-    }
-
-    @Test
-    void removeApp_leading_slash() {
-        String res = s3ClientAdapterService.removeApp("/testapp/file", "testapp");
-        assertThat(res).isEqualTo("/file");
-    }
-
-    @Test
-    void removeApp() {
-        String res = s3ClientAdapterService.removeApp("testapp/file", "testapp");
-        assertThat(res).isEqualTo("/file");
-    }
-
-    @Test
-    void removeApp_no_file() {
-        String res = s3ClientAdapterService.removeApp("testapp", "testapp");
-        assertThat(res).isEqualTo("");
-    }
-
-    @Test
-    void removeApp_other_app() {
-        String res = s3ClientAdapterService.removeApp("onyx/file", "testapp");
-        assertThat(res).isEqualTo("onyx/file");
-    }
-
-    @Test
-    void removeApp_other_empty() {
-        String res = s3ClientAdapterService.removeApp("", "testapp");
-        assertThat(res).isEqualTo("");
-    }
-
-    @Test
-    void removeApp_other_null() {
-        String res = s3ClientAdapterService.removeApp(null, "testapp");
-        assertThat(res).isEqualTo("");
-    }
-
-    @Test
-    void getMyBucketName() {
-        Mockito.when(s3ClientAdapterService.getCurrentTenant()).thenReturn("00000");
-        Mockito.when(s3ClientAdapterService.getCurrentApp()).thenReturn("testapp");
-        String res = s3ClientAdapterService.getMyBucketName();
-        assertThat(res).isEqualTo("testapp-00000");
-    }
-
-    @Test
-    void getOtherBucketName() {
-        Mockito.when(s3ClientAdapterService.getCurrentTenant()).thenReturn("00000");
-        String res = s3ClientAdapterService.getOtherBucketName("onyx");
-        assertThat(res).isEqualTo("onyx-00000");
-    }
-
-    @Test
-    void getDocumentKey_lt(){
-        String res = s3ClientAdapterService.getDocumentKey("/path1/path2/", "file");
-        assertThat(res).isEqualTo("path1/path2/file");
-    }
-
-    @Test
-    void getDocumentKey_l(){
-        String res = s3ClientAdapterService.getDocumentKey("/path1/path2", "file");
-        assertThat(res).isEqualTo("path1/path2/file");
-    }
-
-    @Test
-    void getDocumentKey_t(){
-        String res = s3ClientAdapterService.getDocumentKey("path1/path2/", "file");
-        assertThat(res).isEqualTo("path1/path2/file");
-    }
-
-    @Test
-    void getDocumentKey_0(){
-        String res = s3ClientAdapterService.getDocumentKey("path1/path2", "file");
-        assertThat(res).isEqualTo("path1/path2/file");
-    }
-
-    @Test
-    void getObjectLocation_dto() {
-        Mockito.when(s3ClientAdapterService.getCurrentTenant()).thenReturn("00000");
-        Mockito.when(s3ClientAdapterService.getCurrentApp()).thenReturn("testapp");
-        DocumentDTO dto = new DocumentDTO();
-        dto.setCheminDocument("/path1/path2");
-        dto.setNomDocument("name.txt");
-        s3ClientAdapterService.getObjectLocation(dto);
-        Mockito.verify(s3ClientAdapterService, Mockito.times(1)).getObjectLocation("/path1/path2", "name.txt");
-    }
-
-    @Test
-    void getObjectLocation_lt() {
-        Mockito.when(s3ClientAdapterService.getCurrentTenant()).thenReturn("00000");
-        Mockito.when(s3ClientAdapterService.getCurrentApp()).thenReturn("testapp");
-        var res = s3ClientAdapterService.getObjectLocation("/testapp/lot/", "name.txt");
-        assertThat(res).isNotNull();
-        assertThat(res.getBucketName()).isEqualTo("testapp-00000");
-        assertThat(res.getObjectKey()).isEqualTo("lot/name.txt");
-    }
-
-    @Test
-    void getObjectLocation_l() {
-        Mockito.when(s3ClientAdapterService.getCurrentTenant()).thenReturn("00000");
-        Mockito.when(s3ClientAdapterService.getCurrentApp()).thenReturn("testapp");
-        var res = s3ClientAdapterService.getObjectLocation("/testapp/lot", "name.txt");
-        assertThat(res).isNotNull();
-        assertThat(res.getBucketName()).isEqualTo("testapp-00000");
-        assertThat(res.getObjectKey()).isEqualTo("lot/name.txt");
-    }
-
-    @Test
-    void getObjectLocation_t() {
-        Mockito.when(s3ClientAdapterService.getCurrentTenant()).thenReturn("00000");
-        Mockito.when(s3ClientAdapterService.getCurrentApp()).thenReturn("testapp");
-        var res = s3ClientAdapterService.getObjectLocation("/testapp/lot", "name.txt");
-        assertThat(res).isNotNull();
-        assertThat(res.getBucketName()).isEqualTo("testapp-00000");
-        assertThat(res.getObjectKey()).isEqualTo("lot/name.txt");
-    }
-
-    @Test
-    void getObjectLocation_0() {
-        Mockito.when(s3ClientAdapterService.getCurrentTenant()).thenReturn("00000");
-        Mockito.when(s3ClientAdapterService.getCurrentApp()).thenReturn("testapp");
-        var res = s3ClientAdapterService.getObjectLocation("testapp/lot", "name.txt");
-        assertThat(res).isNotNull();
-        assertThat(res.getBucketName()).isEqualTo("testapp-00000");
-        assertThat(res.getObjectKey()).isEqualTo("lot/name.txt");
-    }
-
-    @Test
-    void getObjectLocation_other_app_lt() {
-        Mockito.when(s3ClientAdapterService.getCurrentTenant()).thenReturn("00000");
-        Mockito.when(s3ClientAdapterService.getCurrentApp()).thenReturn("testapp");
-        var res = s3ClientAdapterService.getObjectLocation("/onyx/lot/", "name.txt");
-        assertThat(res).isNotNull();
-        assertThat(res.getBucketName()).isEqualTo("onyx-00000");
-        assertThat(res.getObjectKey()).isEqualTo("lot/name.txt");
-    }
-
-    @Test
-    void getObjectLocation_other_app_l() {
-        Mockito.when(s3ClientAdapterService.getCurrentTenant()).thenReturn("00000");
-        Mockito.when(s3ClientAdapterService.getCurrentApp()).thenReturn("testapp");
-        var res = s3ClientAdapterService.getObjectLocation("/onyx/lot", "name.txt");
-        assertThat(res).isNotNull();
-        assertThat(res.getBucketName()).isEqualTo("onyx-00000");
-        assertThat(res.getObjectKey()).isEqualTo("lot/name.txt");
-    }
-
-    @Test
-    void getObjectLocation_other_app_t() {
-        Mockito.when(s3ClientAdapterService.getCurrentTenant()).thenReturn("00000");
-        Mockito.when(s3ClientAdapterService.getCurrentApp()).thenReturn("testapp");
-        var res = s3ClientAdapterService.getObjectLocation("onyx/lot/", "name.txt");
-        assertThat(res).isNotNull();
-        assertThat(res.getBucketName()).isEqualTo("onyx-00000");
-        assertThat(res.getObjectKey()).isEqualTo("lot/name.txt");
-    }
-
-    @Test
-    void getObjectLocation_other_app_0() {
-        Mockito.when(s3ClientAdapterService.getCurrentTenant()).thenReturn("00000");
-        Mockito.when(s3ClientAdapterService.getCurrentApp()).thenReturn("testapp");
-        var res = s3ClientAdapterService.getObjectLocation("onyx/lot", "name.txt");
-        assertThat(res).isNotNull();
-        assertThat(res.getBucketName()).isEqualTo("onyx-00000");
-        assertThat(res.getObjectKey()).isEqualTo("lot/name.txt");
-    }
 
     @Test
     void checkOrCreateFolderPath() {
@@ -307,45 +56,249 @@ class S3ClientAdapterServiceTest {
     @Test
     void deleteDocument() throws GpdocValidationException, SystemeStockageException {
         String uuid = "123456789";
-        DocumentDTO dto = new DocumentDTO();
-        dto.setUuidDocument(uuid);
-        dto.setNomDocument("name.txt");
-        dto.setCheminDocument("testapp/lot");
+        DocumentView doc = getDocumentView("testapp/lot", "name.txt", uuid);
+        var loc = new S3ObjectLocation("testapp-00000", "lot/name.txt");
 
-        Mockito.when(s3ClientAdapterService.getCurrentTenant()).thenReturn("00000");
-        Mockito.when(s3ClientAdapterService.getCurrentApp()).thenReturn("testapp");
-        Mockito.when(s3ClientAdapterService.getDocumentFromGpdoc(uuid)).thenReturn(dto);
+        Mockito.when(s3IdentifiantAdapterService.getObjectLocation(any(DocumentView.class))).thenReturn(loc);
+        Mockito.when(s3DocumentResolverAdapterService.getDocumentFromGpdoc(uuid)).thenReturn(doc);
+        Mockito.doNothing().when(s3ClientService).deleteObject(anyString(), anyString(), any());
 
-        Mockito.doNothing().when(s3ClientService).deleteObject(anyString(), anyString(), anyString());
+        s3ClientAdapterService.deleteDocument(uuid);
 
         Mockito.verify(s3ClientService, Mockito.times(1)).deleteObject("testapp-00000", "lot/name.txt", null);
     }
 
     @Test
-    void getDocumentAllVersions() {
+    void getDocumentAllVersions() throws GpdocValidationException, SystemeStockageException {
+        String uuid = "123456789";
+        var doc = getDocumentView("testapp/lot", "name.txt", uuid);
+        var loc = new S3ObjectLocation("testapp-00000", "lot/name.txt");
+
+        var versions = List.of(
+                createSystemeStockageDocumentDTO(doc, "azer"),
+                createSystemeStockageDocumentDTO(doc, "qsdf")
+        );
+
+        Mockito.when(s3IdentifiantAdapterService.getObjectLocation(doc)).thenReturn(loc);
+        Mockito.when(s3DocumentResolverAdapterService.getDocumentFromGpdoc(uuid)).thenReturn(doc);
+        Mockito.when(s3ClientService.getObjectVersions("testapp-00000", "lot/name.txt")).thenReturn(List.of("azer", "qsdf"));
+
+        var res = s3ClientAdapterService.getDocumentAllVersions(uuid);
+
+        Mockito.verify(s3ClientService, Mockito.times(1)).getObjectVersions("testapp-00000", "lot/name.txt");
+
+        assertThat(res).isNotNull().hasSize(2);
+        assertThat(res.get(0).getId()).isEqualTo(uuid);
+        assertThat(res.get(0).getPath()).isEqualTo("testapp/lot");
+        assertThat(res.get(0).getName()).isEqualTo("name.txt");
+        assertThat(res.get(0).getVersionLabel()).isEqualTo("azer");
+        assertThat(res.get(1).getId()).isEqualTo(uuid);
+        assertThat(res.get(1).getPath()).isEqualTo("testapp/lot");
+        assertThat(res.get(1).getName()).isEqualTo("name.txt");
+        assertThat(res.get(1).getVersionLabel()).isEqualTo("qsdf");
     }
 
     @Test
-    void uploadDocument() {
+    void uploadDocument() throws SystemeStockageException, IOException, NodeNotFoundException {
+
+        String uuid = "123456789";
+        var doc = getDocumentView("testapp/lot", "name.txt", uuid);
+        var loc = new S3ObjectLocation("testapp-00000", "lot/name.txt");
+        File tmp = File.createTempFile("tmp", "");
+        tmp.deleteOnExit();
+
+        Mockito.when(s3IdentifiantAdapterService.getObjectLocation(anyString(), anyString())).thenReturn(loc);
+        Mockito.doNothing().when(s3ClientService).createObject(any(), any(), any(File.class));
+        Mockito.when(s3ClientService.getObjectVersions(anyString(), anyString())).thenReturn(List.of("azer"));
+
+        var result = s3ClientAdapterService.uploadDocument(tmp, "testapp/lot", "name.txt", "application/text", "test", "");
+
+        Mockito.verify(s3ClientService).createObject("testapp-00000", "lot/name.txt", tmp);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(uuid);
+        assertThat(result.getPath()).isEqualTo("testapp/lot2");
+        assertThat(result.getName()).isEqualTo("name.txt");
+        assertThat(result.getVersionLabel()).isEqualTo("azer");
+        assertThat(result.getMimeType()).isEqualTo(doc.getMediaType());
+        assertThat(result.getSize()).isEqualTo(Long.parseLong(doc.getTaille()));
+        assertThat(result.getTitre()).isEqualTo(doc.getTitreFr());
+        assertThat(result.isDirectory()).isFalse();
+        assertThat(result.getCreatedAt()).isNotNull();
+        assertThat(result.getModifiedAt()).isNotNull();
     }
 
     @Test
-    void testUploadDocument() {
+    void downloadDocument() throws IOException, SystemeStockageException, GpdocValidationException {
+        String uuid = "123456789";
+        var doc = getDocumentView("testapp/lot", "name.txt", uuid);
+        var loc = new S3ObjectLocation("testapp-00000", "lot/name.txt");
+
+        Mockito.when(s3DocumentResolverAdapterService.getDocumentFromGpdoc(uuid)).thenReturn(doc);
+        Mockito.when(s3IdentifiantAdapterService.getObjectLocation(doc)).thenReturn(loc);
+
+        File tmp = tmp = File.createTempFile("tmp", "");
+        tmp.deleteOnExit();
+        InputStreamResource resource = null;
+        try {
+            resource = new InputStreamResource(new FileInputStream(tmp));
+            Mockito.when(s3ClientService.getObjectContent(anyString(), anyString(), any())).thenReturn(resource);
+
+            var result = s3ClientAdapterService.downloadDocument(uuid);
+
+            Mockito.verify(s3ClientService, Mockito.times(1)).getObjectContent("testapp-00000", "lot/name.txt", null);
+            assertThat(result).isEqualTo(resource);
+
+        } finally {
+            if (resource != null) resource.getInputStream().close();
+        }
     }
 
     @Test
-    void downloadDocument() {
+    void updateProprietes() throws GpdocValidationException, SystemeStockageException {
+        String uuid = "123456789";
+        var doc = getDocumentView("testapp/lot", "name.txt", uuid);
+        var loc = new S3ObjectLocation("testapp-00000", "lot/name.txt");
+        var locDest = new S3ObjectLocation("testapp-00000", "lot/name2.txt");
+
+        Mockito.when(s3DocumentResolverAdapterService.getDocumentFromGpdoc(uuid)).thenReturn(doc);
+        Mockito.when(s3IdentifiantAdapterService.getObjectLocation(doc)).thenReturn(loc);
+        Mockito.when(s3IdentifiantAdapterService.getObjectLocation("testapp/lot", "name2.txt")).thenReturn(locDest);
+
+        Mockito.doNothing().when(s3ClientService).copyObject(anyString(), anyString(), anyString(), anyString());
+        Mockito.doNothing().when(s3ClientService).deleteObject(anyString(), anyString(), any());
+
+        s3ClientAdapterService.updateProprietes(uuid, "titre", "description", "name2.txt");
+
+        Mockito.verify(s3ClientService, Mockito.times(1)).copyObject(loc.getBucketName(), loc.getObjectKey(), locDest.getBucketName(), locDest.getObjectKey());
+        Mockito.verify(s3ClientService, Mockito.times(1)).deleteObject(loc.getBucketName(), loc.getObjectKey(), null);
     }
 
     @Test
-    void testDownloadDocument() {
+    void moveNode() throws GpdocValidationException, SystemeStockageException {
+        String uuid = "123456789";
+        var doc = getDocumentView("testapp/lot", "name.txt", uuid);
+        var loc = new S3ObjectLocation("testapp-00000", "lot/name.txt");
+        var locDest = new S3ObjectLocation("testapp-00000", "lot2/name.txt");
+
+        Mockito.when(s3DocumentResolverAdapterService.getDocumentFromGpdoc(uuid)).thenReturn(doc);
+        Mockito.when(s3IdentifiantAdapterService.getObjectLocation(doc)).thenReturn(loc);
+        Mockito.when(s3IdentifiantAdapterService.getObjectLocation("testapp/lot2", "name.txt")).thenReturn(locDest);
+        Mockito.doNothing().when(s3ClientService).copyObject(anyString(), anyString(), anyString(), anyString());
+        Mockito.doNothing().when(s3ClientService).deleteObject(anyString(), anyString(), any());
+        Mockito.when(s3ClientService.getObjectVersions(anyString(), anyString())).thenReturn(List.of("azer"));
+
+        var result = s3ClientAdapterService.moveNode(uuid, "testapp/lot2");
+
+        Mockito.verify(s3ClientService, Mockito.times(1)).copyObject(loc.getBucketName(), loc.getObjectKey(), locDest.getBucketName(), locDest.getObjectKey());
+        Mockito.verify(s3ClientService, Mockito.times(1)).deleteObject(loc.getBucketName(), loc.getObjectKey(), null);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(uuid);
+        assertThat(result.getPath()).isEqualTo("testapp/lot2");
+        assertThat(result.getName()).isEqualTo("name.txt");
+        assertThat(result.getVersionLabel()).isEqualTo("azer");
+        assertThat(result.getMimeType()).isEqualTo(doc.getMediaType());
+        assertThat(result.getSize()).isEqualTo(Long.parseLong(doc.getTaille()));
+        assertThat(result.getTitre()).isEqualTo(doc.getTitreFr());
+        assertThat(result.isDirectory()).isFalse();
+        assertThat(result.getCreatedAt()).isNotNull();
+        assertThat(result.getModifiedAt()).isNotNull();
     }
 
-    @Test
-    void updateProprietes() {
+    private DocumentView getDocumentView(String chemin, String nom, String uuid){
+        return new DocumentView() {
+            @Override
+            public String getCheminDocument() {
+                return chemin;
+            }
+
+            @Override
+            public String getNomDocument() {
+                return nom;
+            }
+
+            @Override
+            public String getUuidDocument() {
+                return uuid;
+            }
+
+            @Override
+            public String getVersionDocument() {
+                return "azerty-qsdfg-wxcvb";
+            }
+
+            @Override
+            public String getMediaType() {
+                return "application/txt";
+            }
+
+            @Override
+            public String getTaille() {
+                return "100";
+            }
+
+            @Override
+            public String getTitreFr() {
+                return "titreFr";
+            }
+
+            @Override
+            public String getTitreNl() {
+                return "titreNl";
+            }
+
+            @Override
+            public String getTitreDe() {
+                return "titreDe";
+            }
+
+            @Override
+            public String getTitreEn() {
+                return "titreEn";
+            }
+
+            @Override
+            public Boolean getReadOnly() {
+                return false;
+            }
+
+            @Override
+            public Instant getDateRetention() {
+                return null;
+            }
+
+            @Override
+            public Boolean getSuppressionAuto() {
+                return false;
+            }
+
+            @Override
+            public Boolean getArchivageAuto() {
+                return false;
+            }
+
+            @Override
+            public Instant getDateDebutArchivage() {
+                return null;
+            }
+
+            @Override
+            public Instant getDateFinArchivage() {
+                return null;
+            }
+        };
     }
 
-    @Test
-    void moveNode() {
+    private SystemeStockageDocumentDTO createSystemeStockageDocumentDTO(DocumentView documentView, String version){
+        SystemeStockageDocumentDTO dto = new SystemeStockageDocumentDTO();
+        dto.setDirectory(false);
+        dto.setMimeType(documentView.getMediaType());
+        dto.setName(documentView.getNomDocument());
+        dto.setPath(documentView.getCheminDocument());
+        dto.setSize(Long.parseLong(documentView.getTaille()));
+        dto.setVersionLabel(version);
+        dto.setId(documentView.getUuidDocument());
+        return dto;
     }
 }
