@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 public interface SystemStockageClient {
@@ -52,7 +53,7 @@ public interface SystemStockageClient {
      * @return
      * @throws IOException
      */
-    SystemeStockageDocumentDTO uploadDocument(MultipartFile fileRef, String parentPath, String targetName, String destMimeType, String titre, String description) throws SystemeStockageException, IOException, NodeNotFoundException;
+    SystemeStockageDocumentDTO uploadDocument(MultipartFile fileRef, String parentPath, String targetName, String destMimeType, String titre, String description) throws SystemeStockageException, IOException, NodeNotFoundException, NoSuchAlgorithmException;
 
     /**
      * Upload d'un document
@@ -65,7 +66,7 @@ public interface SystemStockageClient {
      * @return
      * @throws IOException
      */
-    SystemeStockageDocumentDTO uploadDocument(File dst, String parentPath, String targetName, String destMimeType, String titre, String description) throws SystemeStockageException, IOException, NodeNotFoundException;
+    SystemeStockageDocumentDTO uploadDocument(File dst, String parentPath, String targetName, String destMimeType, String titre, String description) throws SystemeStockageException, IOException, NodeNotFoundException, NoSuchAlgorithmException;
 
     /**
      * Download d'un document

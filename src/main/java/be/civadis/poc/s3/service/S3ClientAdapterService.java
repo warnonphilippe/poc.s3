@@ -9,14 +9,18 @@ import be.civadis.poc.s3.federation.exception.SystemeStockageException;
 import be.civadis.poc.s3.federation.s3.S3ClientService;
 import be.civadis.poc.s3.repository.DocumentView;
 import be.civadis.poc.s3.utils.FichierUtils;
+import be.civadis.poc.s3.utils.UuidUtils;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -66,22 +70,24 @@ public class S3ClientAdapterService implements SystemStockageClient {
     }
 
     @Override
-    public SystemeStockageDocumentDTO uploadDocument(MultipartFile fileRef, String parentPath, String targetName, String destMimeType, String titre, String description) throws SystemeStockageException, IOException, NodeNotFoundException {
+    public SystemeStockageDocumentDTO uploadDocument(MultipartFile fileRef, String parentPath, String targetName, String destMimeType, String titre, String description) throws SystemeStockageException, IOException, NodeNotFoundException, NoSuchAlgorithmException {
         return uploadDocument(FichierUtils.getFileFromMultipart(fileRef), parentPath, targetName, destMimeType, titre, description);
     }
 
     @Override
-    public SystemeStockageDocumentDTO uploadDocument(File dst, String parentPath, String targetName, String destMimeType, String titre, String description) throws SystemeStockageException, IOException, NodeNotFoundException {
+    public SystemeStockageDocumentDTO uploadDocument(File dst, String parentPath, String targetName, String destMimeType, String titre, String description) throws SystemeStockageException, IOException, NodeNotFoundException, NoSuchAlgorithmException {
 
         SystemeStockageDocumentDTO dto = new SystemeStockageDocumentDTO();
-        //dto.setId();
+        dto.setId(UuidUtils.generateTicketUUID());
         dto.setDirectory(false);
         dto.setMimeType(destMimeType);
-        dto.setName(dst.getName());
+        dto.setName(targetName);
         dto.setPath(parentPath);
         dto.setSize(dst.length());
+        dto.setTitre(titre);
+        dto.setDescription(description);
 
-        S3ObjectLocation loc = s3IdentifiantAdapterService.getObjectLocation(parentPath, dst.getName());
+        S3ObjectLocation loc = s3IdentifiantAdapterService.getObjectLocation(parentPath, targetName);
 
         this.s3ClientService.createObject(loc.getBucketName(), loc.getObjectKey(), dst);
         completeVersion(loc, dto);

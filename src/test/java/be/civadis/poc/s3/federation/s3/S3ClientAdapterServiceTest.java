@@ -22,6 +22,7 @@ import org.springframework.core.io.Resource;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -99,12 +100,11 @@ class S3ClientAdapterServiceTest {
     }
 
     @Test
-    void uploadDocument() throws SystemeStockageException, IOException, NodeNotFoundException {
+    void uploadDocument() throws SystemeStockageException, IOException, NodeNotFoundException, NoSuchAlgorithmException {
 
-        String uuid = "123456789";
-        var doc = getDocumentView("testapp/lot", "name.txt", uuid);
+        //var doc = getDocumentView("testapp/lot", "name.txt", uuid);
         var loc = new S3ObjectLocation("testapp-00000", "lot/name.txt");
-        File tmp = File.createTempFile("tmp", "");
+        File tmp = File.createTempFile("tmp", ".txt");
         tmp.deleteOnExit();
 
         Mockito.when(s3IdentifiantAdapterService.getObjectLocation(anyString(), anyString())).thenReturn(loc);
@@ -116,13 +116,14 @@ class S3ClientAdapterServiceTest {
         Mockito.verify(s3ClientService).createObject("testapp-00000", "lot/name.txt", tmp);
 
         assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo(uuid);
-        assertThat(result.getPath()).isEqualTo("testapp/lot2");
+        assertThat(result.getId()).isNotNull();
+        assertThat(result.getPath()).isEqualTo("testapp/lot");
         assertThat(result.getName()).isEqualTo("name.txt");
         assertThat(result.getVersionLabel()).isEqualTo("azer");
-        assertThat(result.getMimeType()).isEqualTo(doc.getMediaType());
-        assertThat(result.getSize()).isEqualTo(Long.parseLong(doc.getTaille()));
-        assertThat(result.getTitre()).isEqualTo(doc.getTitreFr());
+        assertThat(result.getMimeType()).isEqualTo("application/text");
+        assertThat(result.getSize()).isEqualTo((tmp.length()));
+        assertThat(result.getTitre()).isEqualTo("test");
+        assertThat(result.getDescription()).isEqualTo("");
         assertThat(result.isDirectory()).isFalse();
         assertThat(result.getCreatedAt()).isNotNull();
         assertThat(result.getModifiedAt()).isNotNull();
