@@ -468,9 +468,11 @@ public class FichierUtils {
 
     public static File getFileFromMultipart(MultipartFile multipartFile) throws IOException {
         File file = null;
-        if (multipartFile != null && !multipartFile.isEmpty()) {
+        if (multipartFile != null) {
             file = File.createTempFile(TMP_FILE_PREFIX, null);
-            multipartFile.transferTo(file);
+            if (!multipartFile.isEmpty()){
+                multipartFile.transferTo(file);
+            }
         }
         return file;
     }

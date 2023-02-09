@@ -9,15 +9,14 @@ import be.civadis.poc.s3.service.S3ClientAdapterService;
 import be.civadis.poc.s3.service.S3DocumentResolverAdapterService;
 import be.civadis.poc.s3.service.S3IdentifiantAdapterService;
 import be.civadis.poc.s3.service.S3ObjectLocation;
+import be.civadis.poc.s3.utils.FichierUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.Spy;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -114,6 +113,45 @@ class S3ClientAdapterServiceTest {
         var result = s3ClientAdapterService.uploadDocument(tmp, "testapp/lot", "name.txt", "application/text", "test", "");
 
         Mockito.verify(s3ClientService).createObject("testapp-00000", "lot/name.txt", tmp);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isNotNull();
+        assertThat(result.getPath()).isEqualTo("testapp/lot");
+        assertThat(result.getName()).isEqualTo("name.txt");
+        assertThat(result.getVersionLabel()).isEqualTo("azer");
+        assertThat(result.getMimeType()).isEqualTo("application/text");
+        assertThat(result.getSize()).isEqualTo((tmp.length()));
+        assertThat(result.getTitre()).isEqualTo("test");
+        assertThat(result.getDescription()).isEqualTo("");
+        assertThat(result.isDirectory()).isFalse();
+        assertThat(result.getCreatedAt()).isNotNull();
+        assertThat(result.getModifiedAt()).isNotNull();
+    }
+
+    @Test
+    void uploadDocument_multipart() throws SystemeStockageException, IOException, NodeNotFoundException, NoSuchAlgorithmException {
+
+        //var doc = getDocumentView("testapp/lot", "name.txt", uuid);
+        var loc = new S3ObjectLocation("testapp-00000", "lot/name.txt");
+        File tmp = File.createTempFile("tmp", ".txt");
+        tmp.deleteOnExit();
+
+        MultipartFile multipartFile = FichierUtils.getMultipart(tmp, "name.txt", "application/text");
+
+        Mockito.when(s3IdentifiantAdapterService.getObjectLocation(anyString(), anyString())).thenReturn(loc);
+        Mockito.doNothing().when(s3ClientService).createObject(any(), any(), any(File.class));
+        Mockito.when(s3ClientService.getObjectVersions(anyString(), anyString())).thenReturn(List.of("azer"));
+
+        var result = s3ClientAdapterService.uploadDocument(multipartFile, "testapp/lot", "name.txt", "application/text", "test", "");
+
+        var bucket = ArgumentCaptor.forClass(String.class);
+        var key = ArgumentCaptor.forClass(String.class);
+        var content = ArgumentCaptor.forClass(File.class);
+        Mockito.verify(s3ClientService).createObject(bucket.capture(), key.capture(), content.capture());
+
+        assertThat(bucket.getValue()).isEqualTo("testapp-00000");
+        assertThat(key.getValue()).isEqualTo("lot/name.txt");
+        assertThat(content.getValue()).isNotNull().isFile();
 
         assertThat(result).isNotNull();
         assertThat(result.getId()).isNotNull();
