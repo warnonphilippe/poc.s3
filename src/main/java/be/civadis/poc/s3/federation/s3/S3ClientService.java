@@ -12,7 +12,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -27,55 +26,6 @@ public class S3ClientService {
 
     public S3ClientService(S3ClientConfigService clientConfigService) {
         this.clientConfigService = clientConfigService;
-    }
-
-    /**
-     * Post un fichier dans un bucket
-     * @param bucketName nom du bucket
-     * @param objectKey key complète du fichier sous la forme [path]/nom.ext, ex : lot1/file1.txt (dans l'UI minIO; lot1 sera présenté comme un répertoire)
-     * @param objectContent contenu du fichier
-     */
-    public void createObjectString(String bucketName, String objectKey, String objectContent) throws SystemeStockageException {
-
-        ByteArrayInputStream bais = null;
-        try {
-            bais = new ByteArrayInputStream(objectContent.getBytes("UTF-8"));
-            clientConfigService.getMinIOClient().putObject(PutObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(objectKey)
-                    .stream(bais, bais.available(), -1)
-                    .build());
-
-        } catch (Exception e) {
-            throw new SystemeStockageException(e.getMessage(), e);
-        } finally {
-            cleanStream(bais);
-        }
-
-    }
-
-    public String getObjectContentString(String bucketName, String objectKey, String versionId) throws SystemeStockageException {
-        InputStream stream = null;
-        try {
-
-            var builder = GetObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(objectKey);
-
-            if (versionId != null && !versionId.isBlank() && !versionId.isEmpty()){
-                builder.versionId(versionId);
-            }
-
-            stream = clientConfigService.getMinIOClient().getObject(builder.build());
-
-            byte[] content = FichierUtils.readBytes(stream);
-            return new String(content, StandardCharsets.UTF_8);
-
-        } catch (Exception e){
-            throw new SystemeStockageException(e.getMessage(), e);
-        } finally {
-            cleanStream(stream);
-        }
     }
 
     public List<String> getObjectsList(String bucketName, Boolean recursive) throws SystemeStockageException {
