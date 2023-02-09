@@ -54,18 +54,20 @@ public class S3Resource {
 
     @PostMapping("/{bucket}/rename/{keyBase}/**")
     public ResponseEntity renameObject(@PathVariable("bucket") String bucketName, @PathVariable("keyBase") String keyBase, HttpServletRequest request,
-                                     @RequestParam("dstkey") String dstKey) throws SystemeStockageException {
+                                     @RequestPart("dstkey") String dstKey) throws SystemeStockageException {
         String objectKey = getObjectKey(keyBase, request);
         s3.copyObject(bucketName, objectKey, bucketName, dstKey);
+        s3.deleteObject(bucketName, objectKey,null);
         return ResponseEntity.ok(null);
     }
 
     @PostMapping("/{bucket}/move/{keyBase}/**")
     public ResponseEntity copyObject(@PathVariable("bucket") String bucketName, @PathVariable("keyBase") String keyBase, HttpServletRequest request,
-                                     @RequestParam("dstpath") String dstObjectPath) throws SystemeStockageException {
+                                     @RequestPart("dstpath") String dstObjectPath) throws SystemeStockageException {
         String objectKey = getObjectKey(keyBase, request);
         String objectName = getObjectName(keyBase, request);
         s3.copyObject(bucketName, objectKey, bucketName, dstObjectPath + "/" + objectName);
+        s3.deleteObject(bucketName, objectKey,null);
         return ResponseEntity.ok(null);
     }
 
