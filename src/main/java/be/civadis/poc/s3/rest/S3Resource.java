@@ -62,7 +62,7 @@ public class S3Resource {
     }
 
     @PostMapping("/{bucket}/move/{keyBase}/**")
-    public ResponseEntity copyObject(@PathVariable("bucket") String bucketName, @PathVariable("keyBase") String keyBase, HttpServletRequest request,
+    public ResponseEntity moveObject(@PathVariable("bucket") String bucketName, @PathVariable("keyBase") String keyBase, HttpServletRequest request,
                                      @RequestPart("dstpath") String dstObjectPath) throws SystemeStockageException {
         String objectKey = getObjectKey(keyBase, request);
         String objectName = getObjectName(keyBase, request);
