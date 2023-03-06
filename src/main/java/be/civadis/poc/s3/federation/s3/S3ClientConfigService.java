@@ -12,12 +12,18 @@ import java.util.Map;
 public class S3ClientConfigService {
 
     // TODO : Dans un vrai projet, A extraire dans config
-    private final String URL = "http://localhost:9000";
+    //private final String URL = "http://localhost:9000";
+    private final String URL = "https://172.18.10.211:443";
     private static Map<String, S3ClientConfigService.ConnectionInfos> keyMap = new HashMap();
     static {
+
+        // Netap
+        keyMap.put("testapp_00000", new S3ClientConfigService.ConnectionInfos("84X2_7_AUIa1GN8xAOu_4_1UFXQ0_lfl510J09wca0HI9sMBqBKdEU_BPJcJ19u3yTAD_rPa1B7uBjs1pC8j_01ZJZApq9u7hsup6sTkA7n9t_qBcuQSh6g5a_bacVDC",
+                                                                              "6XA_OEg6NuhB2KBATCxzwlNnA45S_HjZ58BV83_05nz_TR_1y4dL4zPvM9b3n_xBk8j_OqAr8Etp5g2PXX0gZ1331h8cJ10cE_nlX9SYp9vA8D55mFCz1f989Za3dwG8"));
+
         //keyMap.put("testapp_00000", new S3ClientConfigService.ConnectionInfos("xchhmSRz98sphyUn", "83g5sYKZFDfxWQiNUYUCSlb3Z46ve9bM"));
-        keyMap.put("testapp_00000", new S3ClientConfigService.ConnectionInfos("lYZElDKqeVgsqmVI", "NUQiqC61QF4FgtCOJaVopK6UuyGGqkUo"));
-        keyMap.put("onyx_00000", new S3ClientConfigService.ConnectionInfos("tVzyYlpHY0eTfwYq", "MgTzHAu0vdZALd3cIFUOF4ftY3FLJ1GG"));
+        //keyMap.put("testapp_00000", new S3ClientConfigService.ConnectionInfos("lYZElDKqeVgsqmVI", "NUQiqC61QF4FgtCOJaVopK6UuyGGqkUo"));
+        //keyMap.put("onyx_00000", new S3ClientConfigService.ConnectionInfos("tVzyYlpHY0eTfwYq", "MgTzHAu0vdZALd3cIFUOF4ftY3FLJ1GG"));
     }
     private final String REGION = "eu-west-3";
 

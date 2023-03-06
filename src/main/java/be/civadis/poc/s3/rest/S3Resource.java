@@ -92,7 +92,6 @@ public class S3Resource {
         final String bestMatchingPattern = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE).toString();
 
         String arguments = new AntPathMatcher().extractPathWithinPattern(bestMatchingPattern, path);
-
         String objectName;
         if (null != arguments && !arguments.isEmpty()) {
             objectName = arguments.substring(arguments.lastIndexOf("/") + 1);
@@ -102,4 +101,6 @@ public class S3Resource {
 
         return objectName;
     }
+
+
 }
